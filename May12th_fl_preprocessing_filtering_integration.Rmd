@@ -1,0 +1,1139 @@
+---
+title: "Preprocessing and integration of E10.5, E12.5 and E14.5 datasets"
+output: html_document
+date: "2023-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r}
+library(here)
+library(SingleCellExperiment)
+library(scater)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(reticulate)
+library(igraph)
+library(cowplot)
+library(RCurl)
+library(umap)
+library(R.utils)
+library(ensembldb)
+library(AnnotationHub)
+library(DoubletFinder)
+library("glmGamPoi")
+#library(leidenAlg)
+#library(leiden)
+library(tidyverse)
+library(pheatmap)
+library(biomaRt)
+library(EnsDb.Mmusculus.v79)
+#library(dittoSeq)
+library(ComplexHeatmap)
+library(patchwork)
+library(gridExtra)
+library(grid)
+library(scales)
+library(RColorBrewer)
+```
+
+
+
+## Assign samples to variables and read in replicates
+
+```{r}
+# Specify paths to replicate folders
+#data_dir <- here("sc_analysis_project", "sc_analysis_datasets")
+
+
+# Read in replicate datasets using for loop
+for (file in c("Lib141", "Lib142", "Lib151", "Lib152", "Lib161", "Lib162")) {
+  seurat_data <- Read10X(data.dir = here(paste0("sc_analysis_datasets/", file)))# read in counts
+  seurat_obj <- CreateSeuratObject(counts = seurat_data,
+                                   project = file)# create a seurat object
+  assign(file, seurat_obj)# assign Seurat object to a new variable based on sample
+}
+
+# Explore the metadata (run in console)
+head(Lib141@meta.data)
+head(Lib142@meta.data)
+head(Lib151@meta.data)
+head(Lib152@meta.data)
+head(Lib161@meta.data)
+head(Lib162@meta.data)
+
+# Merge replicates by column
+merged_seurat <- merge(x = Lib141,
+                       y = c(Lib142, Lib151, Lib152, Lib161, Lib162),
+                       add.cell.ids = c("FL_E10.5_rep_1", "FL_E10.5_rep_2", "FL_E12.5_rep_1", "FL_E12.5_rep_2", "FL_E14.5_rep_1", "FL_E14.5_rep_2"))
+
+# Does the merged object have the appropriate sample-specific prefixes?
+head(merged_seurat@meta.data)
+
+rm(Lib141,Lib142,Lib151,Lib152,Lib161,Lib162)
+```
+
+# QC the data
+
+```{r}
+# Add number of genes per UMI for each cell to metadata (Novelty score)
+#merged_seurat$log10GenesPerUMI <- log10(merged_seurat$nFeature_RNA) / log10(merged_seurat$nCount_RNA)
+```
+
+
+```{r}
+# Compute percent mitochondrial ratio (percent of transcripts mapping to mitochondrial genes)
+merged_seurat$mitoRatio <- PercentageFeatureSet(object = merged_seurat, pattern = "^mt-")#used small letter mt- because that's what is written for mouse in my data.# Function gives a percentage value
+merged_seurat$mitoRatio <- merged_seurat@meta.data$mitoRatio / 100 #return the value to a ratio
+
+# Alternatively, use the following code chunk
+
+# Pull out any gene names that start with "mt" mitochondrial genes
+#mito_genes <- grep("^mt-", rownames(merged_seurat), value = T)
+
+# Calculate the percent mito by dividing sum of mito reads / total reads
+#percent_mito <- Matrix::colSums(GetAssayDAta(merged_seurat, slot = "counts")[mito_genes,]) / #Matrix::colSums(GetAssayData(merged_seurat, slot = "counts"))
+
+# Compute percent ribosomal ratio
+merged_seurat$riboRatio <- PercentageFeatureSet(object = merged_seurat, pattern = "^Rp[ls]")
+merged_seurat$riboRatio <- merged_seurat@meta.data$riboRatio / 100 #return the value to a ratio
+
+#dir.create("~/sc_analysis_project/results")
+
+
+feats <- c("nFeature_RNA", "nCount_RNA", "mitoRatio", "riboRatio")
+merged_seurat$orig.ident <- factor(merged_seurat$orig.ident, levels = c("Lib141", "Lib142", "Lib151", "Lib152", "Lib161", "Lib162"))
+VlnPlot(merged_seurat, group.by = "orig.ident", pt.size = 0, features = feats, ncol = 3) + 
+    NoLegend() 
+ggsave("May12th_dataset_info_plot.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+
+ribo_genes <- rownames(merged_seurat)[grep("^Rp[sl]", rownames(merged_seurat))]
+head(ribo_genes, 10) 
+```
+
+```{r}
+# Separate the metadata from the metadata slot in the Seurat object into a variable
+# This makes it easier to work with the metadata as a separate entity from the seurat object
+# Create metadata dataframe
+metadata <- merged_seurat@meta.data
+
+# Add cell IDs to metadata columns
+metadata$cells <- rownames(metadata)
+
+# Create sample column and populate with sample replicate name 
+metadata$sample <- NA
+metadata$sample[which(str_detect(metadata$cells, "^FL_E10.5_rep_1"))] <- "FL_E10.5_rep_1"
+metadata$sample[which(str_detect(metadata$cells, "^FL_E10.5_rep_2"))] <- "FL_E10.5_rep_2"
+metadata$sample[which(str_detect(metadata$cells, "^FL_E12.5_rep_1"))] <- "FL_E12.5_rep_1"
+metadata$sample[which(str_detect(metadata$cells, "^FL_E12.5_rep_2"))] <- "FL_E12.5_rep_2"
+metadata$sample[which(str_detect(metadata$cells, "^FL_E14.5_rep_1"))] <- "FL_E14.5_rep_1"
+metadata$sample[which(str_detect(metadata$cells, "^FL_E14.5_rep_2"))] <- "FL_E14.5_rep_2"
+
+
+# Create sample_group column and populate with replicates from the same sample
+metadata$sample_group <- NA
+metadata$sample_group[which(str_detect(metadata$cells, "^FL_E10.5"))] <- "FL_E10.5"
+metadata$sample_group[which(str_detect(metadata$cells, "^FL_E12.5"))] <- "FL_E12.5"
+metadata$sample_group[which(str_detect(metadata$cells, "^FL_E14.5"))] <- "FL_E14.5"
+
+# Create sample_origin column and populate with samples
+metadata$sample_origin <- NA
+metadata$sample_origin[which(str_detect(metadata$cells, "^FL_E10.5"))] <- "fetal_liver"
+metadata$sample_origin[which(str_detect(metadata$cells, "^FL_E12.5"))] <- "fetal_liver"
+metadata$sample_origin[which(str_detect(metadata$cells, "^FL_E14.5"))] <- "fetal_liver"
+
+# Rename columns
+metadata <- metadata %>%
+  dplyr::rename(seq_folder = orig.ident,
+                nUMI = nCount_RNA,
+                nGene = nFeature_RNA)
+
+# Add metadata back to Seurat object
+merged_seurat@meta.data <- metadata
+
+# Plot total number of cells in each sample before QC filtering
+merged_seurat$sample <- factor(merged_seurat$sample, levels = c("FL_E10.5_rep_1", "FL_E10.5_rep_2", "FL_E12.5_rep_1", "FL_E12.5_rep_2", "FL_E14.5_rep_1", "FL_E14.5_rep_2"))
+
+merged_seurat@meta.data %>% 
+  ggplot(aes(x = sample, fill = sample)) +
+  geom_bar() +
+  geom_text(stat = "count", aes(label = ..count.., vjust = -1)) +
+  theme_classic() +
+  theme(axis.text.x = element_text(face = "bold")) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  ylab("Total Cells per Sample") +
+  xlab("Sample") +
+  ggtitle("Total number of cells in each sample") +
+  NoLegend()
+
+ggsave("May12th_total_cells_in_samples.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+
+```
+
+
+```{r}
+# Convert seurat object to singlecellexperiment object
+merged_seurat_sce <- as.SingleCellExperiment(merged_seurat)
+```
+
+
+```{r}
+# How many genes are detected, ie have a count > 0?
+detected_genes <- rowSums(counts(merged_seurat_sce)) > 0
+detected_genes1 <- table(detected_genes)
+write.table(detected_genes1, file = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/detected_genes.txt", quote = FALSE, sep = "\t", row.names = FALSE)
+
+# Filter out undetected genes
+merged_seurat_sce <- merged_seurat_sce[detected_genes, ]
+
+# Manually filter out ribosomal genes
+#remove_ribo <- grepl("^Rp[sl]", rownames(merged_seurat_sce))
+#remove_ribo1 <- table(remove_ribo)
+#write.table(remove_ribo1, file = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/remove_ribo.txt", #quote = FALSE, sep = "\t", row.names = FALSE)
+#remove_ribo2 <- rownames(merged_seurat_sce)[remove_ribo]
+#merged_seurat_sce <- merged_seurat_sce[!remove_ribo, ]
+```
+
+```{r}
+# Populate rowData slot with gene names from rownames of the object
+rowData(merged_seurat_sce)$symbol <- rownames(merged_seurat_sce)
+
+# Extract mitochondrial genes from the EnsDb database
+ensdb_genes <- genes(EnsDb.Mmusculus.v79)
+#list(ensdb_genes)
+mt_names <- ensdb_genes[seqnames(ensdb_genes) == "MT"]$gene_name
+is_mito <- rownames(merged_seurat_sce) %in% mt_names
+
+is_mito <- table(is_mito)
+write.table(is_mito, file = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/is_mito.txt", quote = FALSE, sep = "\t", row.names = FALSE)
+```
+
+```{r}
+# Add per cell QC metrics using the function addPerCellQC
+merged_seurat_sce <- addPerCellQC(merged_seurat_sce, subsets = list(Mito=is_mito))
+
+colData(merged_seurat_sce)
+
+```
+
+```{r}
+# Plot total UMI counts for each sample
+
+merged_seurat_sce$sample_group <- factor(merged_seurat_sce$sample_group, levels = c("FL_E10.5", "FL_E12.5", "FL_E14.5"))
+
+plotColData(merged_seurat_sce, x = "sample", y = "sum", other_fields = "sample_group") +
+  facet_wrap(~sample_group, nrow = 1, scales = "free_x") +
+  scale_y_log10() +
+  ggtitle("Total UMI Count")
+ggsave("May12th_total_umi_count.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
+       width = 17, height = 15)
+
+```
+
+```{r}
+# Plot total genes detected for each sample
+plotColData(merged_seurat_sce, x = "sample", y = "detected", other_fields = "sample_group") +
+  facet_wrap(~sample_group, nrow = 1, scales = "free_x") +
+  scale_y_log10() +
+  ggtitle("Total Genes detected")
+ggsave("May12th_total_gene_counts.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+
+```
+
+
+```{r}
+# Plot total mitochondial percent for each sample
+plotColData(merged_seurat_sce, x = "sample", y = "subsets_Mito_percent", other_fields = "sample_group") +
+  facet_wrap(~sample_group, nrow = 1, scales = "free_x") +
+  ggtitle("Mito percent")
+ggsave("May12th_total_mito_counts.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+```
+
+```{r}
+# Show the relationship between total UMI counts and total genes detected per sample
+#pdf("~/sc_analysis_project/results/tota_umi_counts_vs_gene_count.pdf")
+colData(merged_seurat_sce) %>% 
+  as.data.frame() %>% 
+  arrange(subsets_Mito_percent) %>% 
+  ggplot(aes(x = sum, y = detected)) +
+  geom_point(aes(colour = subsets_Mito_percent > 20)) +
+  facet_wrap(vars(sample))
+ggsave("May12th_total_umi_counts_vs_gene_count.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
+       width = 17, height = 15)
+```
+
+```{r}
+# Determine low quality cells based on low UMI count
+batch_low_lib_size <- isOutlier(merged_seurat_sce$sum, log = TRUE, type = "lower", batch = merged_seurat_sce$sample)
+
+#png("~/sc_analysis_project/results/low_umi_count_cells.png")
+low_umi_count_cells <- table(batch_low_lib_size)
+write.table(low_umi_count_cells, file = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/batch_low_lib_size.txt", quote = FALSE, sep = "\t", row.names = FALSE)
+```
+
+```{r}
+# View to threshold values to see if they are reasonable
+attr(batch_low_lib_size, "thresholds")
+```
+
+```{r}
+# Visualize cells to be filtered out based on UMI count
+colData(merged_seurat_sce)$batch_low_lib_size <- batch_low_lib_size
+
+plotColData(merged_seurat_sce,
+        x = "sample",
+        y = "sum",
+        other_fields = "sample_group",
+        colour_by = "batch_low_lib_size" ) +
+  facet_wrap(~sample_group, nrow = 1, scales ="free_x") +
+  scale_y_log10() +
+  labs(y = "Total UMI count", title = "Total UMI count") +
+  guides(colour = guide_legend(title = "Discarded"))
+
+ggsave("May12th_cells_to_filter_out.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+```
+
+```{r}
+# Determine low quality cells based on low number of genes detected
+batch_low_n_genes <- isOutlier(merged_seurat_sce$detected, log = TRUE, type = "lower", batch = merged_seurat_sce$sample)
+low_gene_count_cells <- table(batch_low_n_genes)
+
+write.table(low_gene_count_cells, file = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/batch_low_n_genes.txt", quote = FALSE, sep = "\t", row.names = FALSE)
+
+# What's the threshold used?
+attr(batch_low_n_genes, "thresholds")
+```
+
+```{r}
+# Visualize cells to be filtered out based on gene count
+colData(merged_seurat_sce)$batch_low_n_genes <- batch_low_n_genes# this adds the data to the colData slot of the object
+
+plotColData(merged_seurat_sce,
+        x = "sample",
+        y = "detected",
+        other_fields = "sample_group",
+        colour_by = "batch_low_n_genes" ) +
+  facet_wrap(~sample_group, nrow = 1, scales ="free_x") +
+  scale_y_log10() +
+  labs(y = "Total Genes detected", title = "Total Genes detected") +
+  guides(colour = guide_legend(title = "Discarded"))
+
+ggsave("May12th_low_gene_count_cells_plot.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+```
+
+```{r}
+# Determine low quality cells based on percentage of mitochondrial genes 
+#batch_high_Mito_percent <- isOutlier(merged_seurat_sce$subsets_Mito_percent, type = "higher")
+table(batch_high_Mito_percent)
+
+# What's the threshold used?
+attr(batch_high_Mito_percent, "thresholds")
+```
+
+
+```{r}
+# Visualize cells to be filtered out based on mito percent
+#colData(merged_seurat_sce)$batch_high_Mito_percent <- batch_high_Mito_percent
+
+plotColData(merged_seurat_sce,
+        x = "sample",
+        y = "subsets_Mito_percent",
+        other_fields = "sample_group",
+        colour_by = "batch_high_Mito_percent" ) +
+  facet_wrap(~sample_group, nrow = 1, scales ="free_x") +
+  scale_y_log10() +
+  labs(y = "Percentage mitochondrial UMIs", title = "Mitochondrial UMIs") +
+  guides(colour = guide_legend(title = "Discarded"))
+```
+I won't filter cells based on mito percent using the isOutlier function from the scater package. It is too stringent. Will remove cells with mito percent above 5%. I want to remove > 15%. Therefore, I will use the subset function in Seurat and specify the percent I want.
+
+
+
+```{r}
+# Filter all the metrics at once
+batch_cell_qc_results <- quickPerCellQC(colData(merged_seurat_sce),
+                                        #percent_subsets = c("subsets_Mito_percent"),
+                                        batch = merged_seurat_sce$sample)
+colSums(as.data.frame(batch_cell_qc_results))
+```
+
+
+```{r}
+# Add computed records to the object. 
+merged_seurat_sce$low_lib_size <- batch_cell_qc_results$low_lib_size
+merged_seurat_sce$low_n_features <- batch_cell_qc_results$low_n_features 
+#merged_seurat_sce$high_Mito_percent <- batch_cell_qc_results$high_subsets_Mito_percent
+merged_seurat_sce$discard <- batch_cell_qc_results$discard
+```
+
+
+```{r}
+plotColData(merged_seurat_sce,
+        x = "sample",
+        y = "sum",
+        other_fields = "sample_group",
+        colour_by = "low_lib_size" ) +
+  facet_wrap(vars(sample_group), nrow = 1, scales ="free_x") +
+  scale_y_log10() +
+  labs(y = "Total UMI count", title = "Total UMI count") +
+  guides(colour = guide_legend(title = "Discarded"))
+
+```
+
+
+```{r}
+# Filter out the cells marked with low UMI count and low detected genes
+merged_seurat_sce <- merged_seurat_sce[ , !merged_seurat_sce$discard]
+
+# Keep only metadata columns and recalculate per cell QC metrics post filtering
+colData(merged_seurat_sce) <- colData(merged_seurat_sce)[ , 4:9]
+
+merged_seurat_sce <- addPerCellQC(merged_seurat_sce, subsets = list(Mito = is_mito))
+
+```
+
+
+```{r}
+# Convert object back to Seurat format
+merged_seurat <- as.Seurat(merged_seurat_sce)
+
+# Remove variables no longer needed
+#rm(Lib141, Lib142, Lib151, Lib152, Lib161, Lib162)
+```
+
+
+
+```{r}
+# Manually filter out cells with mitochondrial percent > 20
+remove_mito <- merged_seurat$mitoRatio > 0.20
+mito_to_remove <- table(remove_mito)
+write.table(mito_to_remove, file = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/mito_to_remove.txt", quote = FALSE, sep = "\t", row.names = FALSE)
+
+# Add remove_mito to the metadata of the object
+merged_seurat@meta.data$remove_mito <- remove_mito
+
+# Filter out cells with mito percent > 20
+merged_seurat <- merged_seurat[ , !remove_mito]
+
+```
+
+
+
+```{r}
+# Rename some columns in the metadata
+merged_seurat@meta.data <- merged_seurat@meta.data %>%
+  dplyr::rename(seq_folder = orig.ident,
+                nUMI = nCount_RNA,
+                nGene = nFeature_RNA)
+```
+
+
+```{r}
+# Create metadata dataframe
+metadata <- as.data.frame(merged_seurat@meta.data)
+
+
+# Get total number of cells in each sample
+(total_cells <- metadata %>% 
+  group_by(sample) %>% 
+  summarize(n = n()))
+
+
+#merged_seurat@meta.data <- metadata
+
+
+```
+
+
+```{r}
+# Visualize the correlation between genes detected and number of UMIs and determine whether there's strong presence of cells with low number of genes/UMIs
+merged_seurat@meta.data %>% 
+  ggplot(aes(x = nUMI, y = nGene, color = mitoRatio)) +
+  geom_point() +
+  scale_color_gradient(low = "gray90", high = "black") +
+  stat_smooth(method = lm) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  geom_vline(xintercept = 1500) +
+  geom_hline(yintercept = 1000) +
+  geom_hline(yintercept = 7745) +
+  facet_wrap(~sample)
+
+ggsave("May12th_corr_bt_gene_vs_UMI.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+```
+
+
+## Normalization (Preliminary)
+
+```{r}
+# Rename seurat object
+filtered_seurat <- merged_seurat
+
+# Normalize the counts
+filtered_seurat <- NormalizeData(filtered_seurat) 
+```
+
+
+# Look for sources of unwanted variation in the dataset
+
+```{r}
+# Look for cell cycle marker genes. I may not remove them since my cells of interest are still differentiating
+# Download list of cell cycle marker genes for mouse
+cc_file <- getURL("https://raw.githubusercontent.com/hbc/tinyatlas/master/cell_cycle/Mus_musculus.csv") 
+# Read in the data
+cell_cycle_genes <- read_csv(file = cc_file)
+
+# Our genes are gene symbols but the cell cycle list contains Ensembl IDs. We will extract gene names for the ensembl ids.
+
+# There are a number of databases: BioMart, AnnotationDBI, AnnotationHub
+
+# Connect to database
+ah = AnnotationHub()
+
+# Access the Ensembl database for organism of interest
+AhDb <- query(ah, 
+              pattern = c("Mus musculus", "EnsDb"),
+              ignore.case = TRUE)
+
+# Acquire the latest annotation file
+id <- AhDb %>% 
+  mcols() %>% 
+  rownames() %>% 
+  tail(n = 1)
+
+# Download the appropriate Ensembldb database
+edb <- ah[[id]]
+
+# Extract gene-level information from database
+annotations <- genes(edb, 
+                     return.type = "data.frame")
+
+# Select annotations of interest
+annotations <- annotations %>% 
+  dplyr::select(gene_id, gene_name, seq_name, gene_biotype, description)
+```
+
+## Get the gene names for the Ensembl IDs belonging to cell cycle marker genes
+
+```{r}
+# Left join cell cycle genes and annotations to get gene names
+cell_cycle_markers <- dplyr::left_join(cell_cycle_genes, annotations, by = c("geneID" = "gene_id"))
+
+# Acquire the S phase genes
+s_genes <- cell_cycle_markers %>%
+        dplyr::filter(phase == "S") %>%
+        pull("gene_name")
+        
+# Acquire the G2M phase genes        
+g2m_genes <- cell_cycle_markers %>%
+        dplyr::filter(phase == "G2/M") %>%
+        pull("gene_name")
+```
+
+Evaluate effects of cell cycle
+
+```{r}
+# Score cells for cell cycle
+filtered_seurat <- CellCycleScoring(filtered_seurat, 
+                                 g2m.features = g2m_genes, 
+                                 s.features = s_genes)
+
+# View cell cycle scores and phases assigned to cells                                 
+#View(seurat_phase@meta.data) 
+
+# Identify the most variable genes
+filtered_seurat <- FindVariableFeatures(filtered_seurat, 
+                     selection.method = "vst",
+                     nfeatures = 3000,# This is the default value 
+                     verbose = FALSE)
+		     
+# Scale the counts
+filtered_seurat <- ScaleData(filtered_seurat)
+
+# Perform PCA
+filtered_seurat <- RunPCA(filtered_seurat)
+
+# Plot the PCA colored by cell cycle phase
+set.seed(123)
+DimPlot(filtered_seurat,
+        reduction = "pca",
+        group.by= "Phase")
+
+ggsave("May12th_cell_cycle_phase.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+```
+
+no sizeable differences due to cell cycle phase! So, regression not required.
+
+
+## Evaluating effects of mitochondrial expression
+
+```{r}
+# Check quartile values
+summary(filtered_seurat@meta.data$mitoRatio)
+
+# Turn mitoRatio into categorical factor vector based on quartile values
+filtered_seurat@meta.data$mitoFr <- cut(filtered_seurat@meta.data$mitoRatio, 
+                   breaks=c(-Inf, 0.0144, 0.0199, 0.0267, Inf), 
+                   labels=c("Low","Medium","Medium high", "High"))
+
+# Plot the PCA colored by mitochondrial 
+
+set.seed(123)
+DimPlot(filtered_seurat,
+        reduction = "pca",
+        group.by = "Phase",
+        split.by = "mitoFr")
+
+ggsave("May12th_cell_cycle_phase_mito.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+```
+
+
+
+### Split samples (in this case replicates) and cluster in preparation for doublet removal
+
+```{r}
+# Split seurat object by condition (e.g. samples)
+split_seurat <- SplitObject(filtered_seurat, split.by = "sample")
+
+# Extract the different groups 
+split_seurat <- split_seurat[c("FL_E10.5_rep_1", "FL_E10.5_rep_2", "FL_E12.5_rep_1", "FL_E12.5_rep_2", "FL_E14.5_rep_1", "FL_E14.5_rep_2")]
+
+
+# pre-process standard workflow
+for (i in 1:length(split_seurat)) {
+split_seurat[[i]] <- NormalizeData(object = split_seurat[[i]]) 
+split_seurat[[i]] <- FindVariableFeatures(object = split_seurat[[i]])
+split_seurat[[i]] <- ScaleData(object = split_seurat[[i]])
+split_seurat[[i]] <- RunPCA(object = split_seurat[[i]])
+#ElbowPlot(split_seurat[[i]])
+split_seurat[[i]] <- FindNeighbors(object = split_seurat[[i]], dims = 1:30)
+split_seurat[[i]] <- FindClusters(object = split_seurat[[i]])
+split_seurat[[i]] <- RunUMAP(object = split_seurat[[i]], dims = 1:30)
+
+}
+
+```
+
+
+# Can run parameter optimization with paramSweep
+```{r}
+rm(merged_seurat, filtered_seurat)
+
+# FL_E10.5_rep_1
+sweep.res <- paramSweep_v3(split_seurat[[1]], PCs = 1:30, sct = FALSE) 
+sweep.stats <- summarizeSweep(sweep.res, GT = FALSE) 
+bcmvn1 <- find.pK(sweep.stats)
+
+ggplot(bcmvn1, aes(pK, BCmetric, group = 1)) +
+  geom_point() +
+  geom_line()
+
+pK1 <- bcmvn1 %>% 
+  dplyr::filter(BCmetric == max(BCmetric)) %>% 
+  dplyr::select(pK)
+pK1 <-  as.numeric(as.character(pK1[[1]]))
+
+
+# FL_E10.5_rep_2
+sweep.res <- paramSweep_v3(split_seurat[[2]], PCs = 1:30, sct = FALSE) 
+sweep.stats <- summarizeSweep(sweep.res, GT = FALSE) 
+bcmvn2 <- find.pK(sweep.stats)
+
+ggplot(bcmvn2, aes(pK, BCmetric, group = 1)) +
+  geom_point() +
+  geom_line()
+
+pK2 <- bcmvn2 %>% 
+  dplyr::filter(BCmetric == max(BCmetric)) %>% 
+  dplyr::select(pK)
+pK2 <-  as.numeric(as.character(pK2[[1]]))
+
+# FL_E12.5_rep_1
+sweep.res <- paramSweep_v3(split_seurat[[3]], PCs = 1:30, sct = FALSE) 
+sweep.stats <- summarizeSweep(sweep.res, GT = FALSE) 
+bcmvn3 <- find.pK(sweep.stats)
+
+ggplot(bcmvn3, aes(pK, BCmetric, group = 1)) +
+  geom_point() +
+  geom_line()
+
+pK3 <- bcmvn3 %>% 
+  dplyr::filter(BCmetric == max(BCmetric)) %>% 
+  dplyr::select(pK)
+pK3 <-  as.numeric(as.character(pK3[[1]]))
+
+# FL_E12.5_rep_2
+sweep.res <- paramSweep_v3(split_seurat[[4]], PCs = 1:30, sct = FALSE) 
+sweep.stats <- summarizeSweep(sweep.res, GT = FALSE) 
+bcmvn4 <- find.pK(sweep.stats)
+ggplot(bcmvn4, aes(pK, BCmetric, group = 1)) +
+  geom_point() +
+  geom_line()
+
+pK4 <- bcmvn4 %>% 
+  dplyr::filter(BCmetric == max(BCmetric)) %>% 
+  dplyr::select(pK)  
+pK4 <- as.numeric((as.character(pK4[[1]])))
+
+# FL_E14.5_rep_1
+sweep.res <- paramSweep_v3(split_seurat[[5]], PCs = 1:30, sct = FALSE) 
+sweep.stats <- summarizeSweep(sweep.res, GT = FALSE) 
+bcmvn5 <- find.pK(sweep.stats)
+
+ggplot(bcmvn5, aes(pK, BCmetric, group = 1)) +
+  geom_point() +
+  geom_line()
+
+pK5 <- bcmvn5 %>% 
+  dplyr::filter(BCmetric == max(BCmetric)) %>% 
+  dplyr::select(pK)
+pK5 <-  as.numeric(as.character(pK5[[1]]))
+
+
+# FL_E14.5_rep_2
+sweep.res <- paramSweep_v3(split_seurat[[6]], PCs = 1:30, sct = FALSE) 
+sweep.stats <- summarizeSweep(sweep.res, GT = FALSE) 
+bcmvn6 <- find.pK(sweep.stats)
+
+ggplot(bcmvn6, aes(pK, BCmetric, group = 1)) +
+  geom_point() +
+  geom_line()
+
+pK6 <- bcmvn6 %>% 
+  dplyr::filter(BCmetric == max(BCmetric)) %>% 
+  dplyr::select(pK)
+pK6 <-  as.numeric(as.character(pK6[[1]]))
+
+```
+
+
+
+#### Estimate Homotypic doublet proportion
+
+```{r}
+# FL_E10.5_rep_1
+annotations <- split_seurat$FL_E10.5_rep_1@meta.data$seurat_clusters
+homotypic_prop <- modelHomotypic(annotations)
+
+# define the expected number of doublet cells.
+nExp_poi1 <- round(0.039*nrow(split_seurat[[1]]@meta.data))
+  #round(ncol(split_seurat[[1]]) * 0.039)  # expect 3.9% doublets
+nExp_poi1_adj <- round(nExp_poi1*(1 - homotypic_prop))
+
+# Identify doublets
+split_seurat[[1]] <- doubletFinder_v3(split_seurat[[1]], pN = 0.25, pK = pK1, nExp = nExp_poi1_adj, PCs = 1:30, reuse.pANN = FALSE, sct = FALSE)
+
+
+# FL_E10.5_rep_2
+annotations <- split_seurat$FL_E10.5_rep_2@meta.data$seurat_clusters
+homotypic_prop <- modelHomotypic(annotations)
+
+# define the expected number of doublet cells.
+nExp_poi2 <- round(0.039*nrow(split_seurat[[2]]@meta.data))
+  #round(ncol(split_seurat[[2]]) * 0.039)  # expect 3.9% doublets
+nExp_poi2_adj <- round(nExp_poi2*(1 - homotypic_prop))
+
+# Identify doublets
+split_seurat[[2]] <- doubletFinder_v3(split_seurat[[2]], pN = 0.25, pK = pK2, nExp = nExp_poi2_adj, PCs = 1:30, reuse.pANN = FALSE, sct = FALSE)
+
+
+# FL_E12.5_rep_1
+annotations <- split_seurat$FL_E12.5_rep_1@meta.data$seurat_clusters
+homotypic_prop <- modelHomotypic(annotations)
+
+# define the expected number of doublet cells.
+nExp_poi3 <- round(0.046*nrow(split_seurat[[3]]@meta.data))
+  #round(ncol(split_seurat[[3]]) * 0.046)  # expect 4.6% doublets
+nExp_poi3_adj <- round(nExp_poi3*(1 - homotypic_prop))
+
+# Identify doublets
+split_seurat[[3]] <- doubletFinder_v3(split_seurat[[3]], pN = 0.25, pK = pK3, nExp = nExp_poi3_adj, PCs = 1:30, reuse.pANN = FALSE, sct = FALSE)
+
+# FL_E12.5_rep_2
+annotations <- split_seurat$FL_E12.5_rep_2@meta.data$seurat_clusters
+homotypic_prop <- modelHomotypic(annotations)
+
+# define the expected number of doublet cells.
+nExp_poi4 <- round(0.039*nrow(split_seurat[[4]]@meta.data))
+  #round(ncol(split_seurat[[4]]) * 0.039)  # expect 3.9% doublets
+nExp_poi4_adj <- round(nExp_poi4*(1 - homotypic_prop))
+
+# Identify doublets
+split_seurat[[4]] <- doubletFinder_v3(split_seurat[[4]], pN = 0.25, pK = pK4, nExp = nExp_poi4_adj, PCs = 1:30, reuse.pANN = FALSE, sct = FALSE)
+
+
+# FL_E14.5_rep_1
+annotations <- split_seurat$FL_E14.5_rep_1@meta.data$seurat_clusters
+homotypic_prop <- modelHomotypic(annotations)
+
+# define the expected number of doublet cells.
+nExp_poi5 <- round(0.023*nrow(split_seurat[[5]]@meta.data))
+  #round(ncol(split_seurat[[5]]) * 0.023)  # expect 2.3% doublets
+nExp_poi5_adj <- round(nExp_poi5*(1 - homotypic_prop))
+
+# Identify doublets
+split_seurat[[5]] <- doubletFinder_v3(split_seurat[[5]], pN = 0.25, pK = pK5, nExp = nExp_poi5_adj, PCs = 1:30, reuse.pANN = FALSE, sct = FALSE)
+
+
+# FL_E14.5_rep_2
+annotations <- split_seurat$FL_E14.5_rep_2@meta.data$seurat_clusters
+homotypic_prop <- modelHomotypic(annotations)
+
+# define the expected number of doublet cells.
+nExp_poi6 <- round(0.039*nrow(split_seurat[[6]]@meta.data))
+  #round(ncol(split_seurat[[6]]) * 0.039)  # expect 3.9% doublets
+nExp_poi6_adj <- round(nExp_poi6*(1 - homotypic_prop))
+
+# Identify doublets
+split_seurat[[6]] <- doubletFinder_v3(split_seurat[[6]], pN = 0.25, pK = pK6, nExp = nExp_poi6_adj, PCs = 1:30,reuse.pANN = FALSE, sct = FALSE)
+
+```
+
+
+### Plot doublets in the replicates
+```{r}
+# FL_E10.5_rep_1
+# name of the DF prediction can change, so extract the correct column name.
+#DF.name1 <-  colnames(split_seurat[[1]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[1]]@meta.data))]
+
+# Rename some columns in the metadata
+split_seurat[[1]]@meta.data <- split_seurat[[1]]@meta.data %>%
+  dplyr::rename(DF.name1 = colnames(split_seurat[[1]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[1]]@meta.data))])
+
+
+#DimPlot(split_seurat[[1]], reduction = 'umap', group.by = "DF.classifications_0.25_0.03_122")
+
+cowplot::plot_grid(ncol = 2, DimPlot(split_seurat[[1]], group.by = "seq_folder") + NoAxes(),
+    DimPlot(split_seurat[[1]], group.by = "DF.name1") + NoAxes())
+
+VlnPlot(split_seurat[[1]], features = "nGene", group.by = "DF.name1", pt.size = 0.1)
+```
+
+
+```{r}
+# FL_E10.5_rep_2
+# name of the DF prediction can change, so extract the correct column name.
+#DF.name2 <-  colnames(split_seurat[[2]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[2]]@meta.data))]
+
+split_seurat[[2]]@meta.data <- split_seurat[[2]]@meta.data %>%
+  dplyr::rename(DF.name2 = colnames(split_seurat[[2]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[2]]@meta.data))])
+#DimPlot(split_seurat[[2]], reduction = 'umap', group.by = "DF.classifications_0.25_0.03_122")
+
+cowplot::plot_grid(ncol = 2, DimPlot(split_seurat[[2]], group.by = "seq_folder") + NoAxes(),
+    DimPlot(split_seurat[[2]], group.by = "DF.name2") + NoAxes())
+
+VlnPlot(split_seurat[[2]], features = "nGene", group.by = "DF.name2", pt.size = 0.1)
+```
+
+
+```{r}
+# FL_E12.5_rep_1
+# name of the DF prediction can change, so extract the correct column name.
+#DF.name3 <-  colnames(split_seurat[[3]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[3]]@meta.data))]
+
+# Rename some columns in the metadata
+split_seurat[[3]]@meta.data <- split_seurat[[3]]@meta.data %>%
+  dplyr::rename(DF.name3 = colnames(split_seurat[[3]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[3]]@meta.data))])
+#DimPlot(split_seurat[[3]], reduction = 'umap', group.by = "DF.classifications_0.25_0.03_122")
+
+cowplot::plot_grid(ncol = 2, DimPlot(split_seurat[[3]], group.by = "seq_folder") + NoAxes(),
+    DimPlot(split_seurat[[3]], group.by = "DF.name3") + NoAxes())
+
+VlnPlot(split_seurat[[3]], features = "nGene", group.by = "DF.name3", pt.size = 0.1)
+```
+
+
+```{r}
+# FL_E12.5_rep_2
+#DF.name4 <-  colnames(split_seurat[[4]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[4]]@meta.data))]
+
+# Rename some columns in the metadata
+split_seurat[[4]]@meta.data <- split_seurat[[4]]@meta.data %>%
+  dplyr::rename(DF.name4 = colnames(split_seurat[[4]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[4]]@meta.data))])
+
+cowplot::plot_grid(ncol = 2, DimPlot(split_seurat[[4]], group.by = "seq_folder") + NoAxes(),
+    DimPlot(split_seurat[[4]], group.by = "DF.name4") + NoAxes())
+
+VlnPlot(split_seurat[[4]], features = "nGene", group.by = "DF.name4", pt.size = 0.1)
+
+```
+
+
+```{r}
+# FL_E14.5_rep_1
+#DF.name5 <-  colnames(split_seurat[[5]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[5]]@meta.data))]
+
+# Rename some columns in the metadata
+split_seurat[[5]]@meta.data <- split_seurat[[5]]@meta.data %>%
+  dplyr::rename(DF.name5 = colnames(split_seurat[[5]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[5]]@meta.data))])
+cowplot::plot_grid(ncol = 2, DimPlot(split_seurat[[5]], group.by = "seq_folder") + NoAxes(),
+    DimPlot(split_seurat[[5]], group.by = "DF.name5") + NoAxes())
+
+VlnPlot(split_seurat[[5]], features = "nGene", group.by = "DF.name5", pt.size = 0.1)
+
+```
+
+
+```{r}
+# FL_E14.5_rep_2
+#DF.name6 <-  colnames(split_seurat[[6]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[6]]@meta.data))]
+
+# Rename some columns in the metadata
+split_seurat[[6]]@meta.data <- split_seurat[[6]]@meta.data %>%
+  dplyr::rename(DF.name6 = colnames(split_seurat[[6]]@meta.data)[grepl("DF.classification", colnames(split_seurat[[6]]@meta.data))])
+cowplot::plot_grid(ncol = 2, DimPlot(split_seurat[[6]], group.by = "seq_folder") + NoAxes(),
+    DimPlot(split_seurat[[6]], group.by = "DF.name6") + NoAxes())
+
+VlnPlot(split_seurat[[6]], features = "nGene", group.by = "DF.name6", pt.size = 0.1)
+```
+
+
+
+### Remove predicted doublets
+
+```{r}
+#split_seurat[[1]] <-  split_seurat[[1]][, split_seurat[[1]]@meta.data[, DF.name1] == "Singlet"]
+split_seurat[[1]] <- subset(split_seurat[[1]], subset = DF.name1 == "Singlet")
+dim(split_seurat[[1]]@meta.data)
+
+#split_seurat[[2]] <-  split_seurat[[2]][, split_seurat[[2]]@meta.data[, DF.name2] == "Singlet"]
+split_seurat[[2]] <- subset(split_seurat[[2]], subset = DF.name2 == "Singlet")
+dim(split_seurat[[2]]@meta.data)
+
+#split_seurat[[3]] <-  split_seurat[[3]][, split_seurat[[3]]@meta.data[, DF.name3] == "Singlet"]
+split_seurat[[3]] <- subset(split_seurat[[3]], subset = DF.name3 == "Singlet")
+dim(split_seurat[[3]]@meta.data)
+
+#split_seurat[[4]] <-  split_seurat[[4]][, split_seurat[[4]]@meta.data[, DF.name4] == "Singlet"]
+split_seurat[[4]] <- subset(split_seurat[[4]], subset = DF.name4 == "Singlet")
+dim(split_seurat[[4]]@meta.data)
+
+#split_seurat[[5]] <-  split_seurat[[5]][, split_seurat[[5]]@meta.data[, DF.name5] == "Singlet"]
+split_seurat[[5]] <- subset(split_seurat[[5]], subset = DF.name5 == "Singlet")
+dim(split_seurat[[5]]@meta.data)
+
+#split_seurat[[6]] <-  split_seurat[[6]][, split_seurat[[6]]@meta.data[, DF.name6] == "Singlet"]
+split_seurat[[6]] <- subset(split_seurat[[6]], subset = DF.name6 == "Singlet")
+dim(split_seurat[[6]]@meta.data)
+```
+```{r}
+saveRDS(split_seurat, "~/myproject/sc_analysis_project/msc_project/rds_data/split_seurat_after_filtering_doubletremoval.rds")
+split_seurat <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/split_seurat_after_filtering_doubletremoval.rds")
+```
+
+
+
+```{r}
+merged_seurat_remerge <- merge(x = split_seurat[[1]],
+                       y = c(split_seurat[[2]], split_seurat[[3]], split_seurat[[4]], split_seurat[[5]], split_seurat[[6]]))
+```
+
+
+
+Plot the features below after doublet removal
+```{r}
+feats <- c("nFeature_RNA", "nCount_RNA", "mitoRatio", "riboRatio")
+VlnPlot(merged_seurat_remerge, group.by = "sample", pt.size = 0, features = feats, ncol = 4) +
+    NoLegend()
+ggsave("May12th_cell_info_after_filtering.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+
+
+```
+
+
+```{r}
+# Visualize the number of cell counts per sample
+merged_seurat_remerge@meta.data %>% 
+  ggplot(aes(x = sample, fill = sample)) +
+  geom_bar() +
+  geom_text(stat = "count", aes(label = ..count.., vjust = -1)) +
+  theme_classic() +
+  theme(axis.text.x = element_text(face = "bold")) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  ylab("Total Cells in Sample") +
+  xlab("Sample") +
+  ggtitle("Total number of cells in each sample") +
+  NoLegend()
+
+ggsave("May12th_final_total_no_of_counts_persample.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
+       width = 17, height = 15)
+```
+
+
+```{r}
+rm(merged_seurat_remerge)
+```
+
+
+**SCTransform() encompasses NormalizeData, FindVariableFeatures and ScaleData functions**
+
+#### Integration
+
+```{r}
+# SCTransform the split_seurat object
+
+# Use for loop to perform SCTransform on all samples iteratively
+for (i in 1:length(split_seurat)) {
+  split_seurat[[i]] <- SCTransform(split_seurat[[i]],
+                                   vst.flavor = "v2",
+                                   #vars.to.regress = c("S.Score", "G2M.Score"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+}
+```
+
+
+## Subset fetal liver samples separately
+```{r}
+# Extract the different groups 
+fl_samples_E10.5_12May <- split_seurat[c(1,2)]
+fl_samples_E12.5_12May <- split_seurat[c(3,4)]
+fl_samples_E14.5_12May <- split_seurat[c(5,6)]
+
+
+rm(split_seurat)
+
+```
+
+```{r}
+#rm(fl_samples_E10.5_12May, split_seurat)
+```
+
+
+## E10.5
+```{r}
+# Select the most variable features for integration
+integ_features <- SelectIntegrationFeatures(object.list = fl_samples_E10.5_12May, nfeatures = 3000) 
+                                           
+
+# Prepare the SCT list object for integration
+fl_samples_E10.5_12May <- PrepSCTIntegration(object.list = fl_samples_E10.5_12May,
+                                   anchor.features = integ_features)
+
+# Perform canonical correlation analysis, find and filter anchors
+integ_anchors <- FindIntegrationAnchors(object.list = fl_samples_E10.5_12May,
+                                        normalization.method = "SCT",
+                                        anchor.features = integ_features)
+
+
+rm(fl_samples_E10.5_12May)
+
+
+# Integrate replicates
+E10.5_integrated <- IntegrateData(anchorset = integ_anchors,
+                                   normalization.method = "SCT")
+saveRDS(E10.5_integrated, "~/myproject/sc_analysis_project/msc_project/rds_data/E10.5/E10.5_integrated.rds")
+
+rm(E10.5_integrated, integ_anchors)
+
+```
+
+
+
+## E12.5
+```{r}
+# Select the most variable features for integration
+integ_features <- SelectIntegrationFeatures(object.list = fl_samples_E12.5_12May, nfeatures = 3000) 
+                                           
+
+# Prepare the SCT list object for integration
+fl_samples_E12.5_12May <- PrepSCTIntegration(object.list = fl_samples_E12.5_12May,
+                                   anchor.features = integ_features)
+
+# Perform canonical correlation analysis, find and filter anchors
+integ_anchors <- FindIntegrationAnchors(object.list = fl_samples_E12.5_12May,
+                                        normalization.method = "SCT",
+                                        anchor.features = integ_features)
+
+
+rm(fl_samples_E12.5_12May)
+
+
+# Integrate across conditions (replicates and time points in this case)
+E12.5_integrated <- IntegrateData(anchorset = integ_anchors,
+                                   normalization.method = "SCT")
+saveRDS(E12.5_integrated, "~/myproject/sc_analysis_project/msc_project/rds_data/E12.5/E12.5_integrated.rds")
+
+rm(E12.5_integrated, integ_anchors)
+
+```
+
+
+
+## E14.5
+```{r}
+# Select the most variable features for integration
+integ_features <- SelectIntegrationFeatures(object.list = fl_samples_E14.5_12May, nfeatures = 3000) 
+                                           
+
+# Prepare the SCT list object for integration
+fl_samples_E14.5_12May <- PrepSCTIntegration(object.list = fl_samples_E14.5_12May,
+                                   anchor.features = integ_features)
+
+# Perform canonical correlation analysis, find and filter anchors
+integ_anchors <- FindIntegrationAnchors(object.list = fl_samples_E14.5_12May,
+                                        normalization.method = "SCT",
+                                        anchor.features = integ_features)
+
+
+rm(fl_samples_E14.5_12May)
+
+
+# Integrate across conditions (replicates and time points in this case)
+E14.5_integrated <- IntegrateData(anchorset = integ_anchors,
+                                   normalization.method = "SCT")
+saveRDS(E14.5_integrated, "~/myproject/sc_analysis_project/msc_project/rds_data/E14.5E14.5_integrated.rds")
+
+rm(E14.5_integrated, integ_anchors)
+
+```
+
+
+
+## Specify colours
+
+```{r}
+ggplotColours <- function(n = 6, h = c(0, 360) + 15){
+  if ((diff(h) %% 360) < 1) h[2] <- h[2] - 360/n
+  hcl(h = (seq(h[1], h[2], length = n)), c = 100, l = 65)
+}
+
+color_list <- ggplotColours(n=25)
+```
+
+
+```{r}
+sessionInfo()
+```
+

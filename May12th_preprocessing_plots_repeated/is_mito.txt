@@ -1,0 +1,3 @@
+is_mito	Freq
+FALSE	20445
+TRUE	13

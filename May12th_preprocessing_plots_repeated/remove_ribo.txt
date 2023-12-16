@@ -1,0 +1,3 @@
+remove_ribo	Freq
+FALSE	20345
+TRUE	113

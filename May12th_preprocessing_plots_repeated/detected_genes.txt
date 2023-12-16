@@ -1,0 +1,3 @@
+detected_genes	Freq
+FALSE	7540
+TRUE	20458
