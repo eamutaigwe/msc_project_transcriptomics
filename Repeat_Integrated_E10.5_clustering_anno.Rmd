@@ -1,0 +1,5036 @@
+---
+title: "Clustering annotation of E10.5 Integrated data to regress sex-specific genes"
+author: "Ekpereka Amutaigwe"
+date: "2023-05-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r}
+suppressPackageStartupMessages ({
+library(here)
+library(SingleCellExperiment)
+library(scater)
+library(Seurat)
+library(ggplot2)
+library(Matrix)
+library(reticulate)
+#library(ggpubr) # For donut plot
+#library(cowplot)
+library(EnhancedVolcano)
+library(textshaping)
+library(RCurl)
+library(umap)
+library(R.utils)
+library(ensembldb)
+library(AnnotationHub)
+#library(dyno)
+library(tidyverse)
+library(pheatmap)
+#library(biomaRt)
+#library(EnsDb.Mmusculus.v79)
+#library(dittoSeq)
+library(ComplexHeatmap)
+#library(scCustomize)
+library(patchwork)
+library(gridExtra)
+library(grid)
+library(scales)
+library(RColorBrewer)
+#library(ggsci)# Package for scientific journal color palettes
+#library(pals) # for colours
+#library(monocle3)
+#library(SeuratWrappers)
+#library(slingshot)
+#library(tradeSeq)
+#library(scry)# recommended by Slingshot author for feature selection for running fitGAM on a subset of genes only instead of highly #variable genes from Seurat
+#library(gam)
+library(openxlsx)
+})
+```
+
+
+```{r}
+#dir.create("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots")
+```
+
+
+```{r, eval=FALSE}
+# Read in Fetal liver E10.5 data
+#fl_samples_E10.5_12May_notintegrated <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_notintegrated.rds")# Raw object. CHECK FOR BATCH EFFECT
+fl_samples_E10.5_12May <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/E10.5_integrated.rds") # Raw object.
+fl_samples_E10.5_12May <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_clustered_sexgenesnotremoved.rds")
+fl_samples_E10.5_12May_named <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named.rds")
+markers_fl_samples_E10.5_12May_named <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/markers_fl_samples_E10.5_12May_named.rds")
+fl_samples_E10.5_12May_named_subset <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset.rds")
+fl_samples_E10.5_12May_named_subset_DEG <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset_DEG.rds")
+```
+
+
+# The cells do not cluster based on sex. Do not regress out sex genes 
+```{r}
+#fl_samples_E10.5_12May_regressed <- fl_samples_E10.5_12May
+#rm(fl_samples_E10.5_12May)
+
+#DefaultAssay(fl_samples_E10.5_12May_regressed) <- "RNA"
+```
+
+
+
+```{r}
+#DefaultAssay(fl_samples_E10.5_12May_regressed) <- "RNA"
+#fl_samples_E10.5_12May_regressed <- AddModuleScore(object = fl_samples_E10.5_12May_regressed, features = sex_genes, name = "Sex_Genes")
+#fl_samples_E10.5_12May_regressed[]
+
+
+```
+
+
+```{r}
+# SCTransform the subset Ery object
+#DefaultAssay(fl_samples_E10.5_12May_regressed) <- "RNA"
+#fl_samples_E10.5_12May_regressed <- SCTransform(fl_samples_E10.5_12May_regressed,
+                                   #vst.flavor = "v2",
+                                   #vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score", "prediction"),
+                                   #variable.features.n = 3000,
+                                   #verbose = FALSE)
+```
+
+
+
+## Visualize subsets
+
+```{r, eval=FALSE}
+set.seed(1263)
+DefaultAssay(fl_samples_E10.5_12May) <- "integrated"
+# Run PCA
+fl_samples_E10.5_12May<- RunPCA(object = fl_samples_E10.5_12May, verbose = FALSE)
+```
+
+
+
+```{r}
+# Plot PCA
+PCAPlot(fl_samples_E10.5_12May)
+
+```
+
+
+```{r, eval=FALSE}
+# Plot the elbow plot
+ElbowPlot(object = fl_samples_E10.5_12May, 
+          ndims = 50)
+
+```
+
+
+```{r, eval=FALSE}
+set.seed(122345)
+# Run UMAP
+fl_samples_E10.5_12May <- RunUMAP(fl_samples_E10.5_12May, 
+                  dims = 1:50,
+                  reduction = "pca", verbose = FALSE)
+
+# Determine the K-nearest neighbour graph
+fl_samples_E10.5_12May <- FindNeighbors(object = fl_samples_E10.5_12May,
+                                  dims = 1:50, verbose = FALSE)
+
+# Determine the clusters of the various resolutions
+fl_samples_E10.5_12May  <- FindClusters(object = fl_samples_E10.5_12May,
+                         resolution = c(0.5, 0.6, 0.7, 0.8, 0.9),
+                                  algorithm = 1, verbose = FALSE)
+
+# Assign identity to clusters
+Idents(object = fl_samples_E10.5_12May) <- "integrated_snn_res.0.9"
+```
+
+
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May,
+        reduction = "umap",
+        label = TRUE,
+        label.size = 6,
+        pt.size = 1.5)
+```
+
+
+### Find subclusters of cluster 10
+
+```{r, eval=FALSE}
+# Find subclusters
+fl_samples_E10.5_12May <- FindSubCluster(
+  fl_samples_E10.5_12May,
+  cluster = 10,
+  graph.name = "integrated_snn",
+  subcluster.name = "subcluster10",
+  resolution = 0.2,
+  algorithm = 1
+) # Algorithm = 4 is Leiden algorithm
+
+DimPlot(fl_samples_E10.5_12May, reduction = "umap", group.by = "subcluster10", label = TRUE, label.size = 6)
+```
+
+
+```{r, eval=FALSE}
+# Update the cluster ident column in the seurat object
+fl_samples_E10.5_12May <- SetIdent(fl_samples_E10.5_12May, value = fl_samples_E10.5_12May@meta.data$subcluster10)
+```
+
+
+### Find subclusters of cluster 11
+
+```{r, eval=FALSE}
+# Find subclusters
+fl_samples_E10.5_12May<- FindSubCluster(
+  fl_samples_E10.5_12May,
+  cluster = 11,
+  graph.name = "integrated_snn",
+  subcluster.name = "subcluster11",
+  resolution = 0.2,
+  algorithm = 1
+) # Algorithm = 4 is Leiden algorithm
+
+DimPlot(fl_samples_E10.5_12May, reduction = "umap", group.by = "subcluster11", label = TRUE, label.size = 6)
+```
+
+
+```{r, eval=FALSE}
+# Update the cluster ident column in the seurat object
+fl_samples_E10.5_12May <- SetIdent(fl_samples_E10.5_12May, value = fl_samples_E10.5_12May@meta.data$subcluster11)
+```
+
+
+### Find subclusters of cluster 8
+
+```{r, eval=FALSE}
+# Find subclusters
+fl_samples_E10.5_12May<- FindSubCluster(
+  fl_samples_E10.5_12May,
+  cluster = 8,
+  graph.name = "integrated_snn",
+  subcluster.name = "subcluster8",
+  resolution = 0.2,
+  algorithm = 1
+) # Algorithm = 4 is Leiden algorithm
+
+DimPlot(fl_samples_E10.5_12May, reduction = "umap", group.by = "subcluster8", label = TRUE, label.size = 6)
+```
+
+
+```{r, eval=FALSE}
+# Update the cluster ident column in the seurat object
+fl_samples_E10.5_12May <- SetIdent(fl_samples_E10.5_12May, value = fl_samples_E10.5_12May@meta.data$subcluster8)
+```
+
+
+
+### Find subclusters of cluster 7
+
+```{r, eval=FALSE}
+# Find subclusters
+fl_samples_E10.5_12May<- FindSubCluster(
+  fl_samples_E10.5_12May,
+  cluster = 7,
+  graph.name = "integrated_snn",
+  subcluster.name = "subcluster7",
+  resolution = 0.2,
+  algorithm = 1
+) # Algorithm = 4 is Leiden algorithm
+
+DimPlot(fl_samples_E10.5_12May, reduction = "umap", group.by = "subcluster7", label = TRUE, label.size = 6)
+```
+
+
+```{r, eval=FALSE}
+# Update the cluster ident column in the seurat object
+fl_samples_E10.5_12May <- SetIdent(fl_samples_E10.5_12May, value = fl_samples_E10.5_12May@meta.data$subcluster7)
+```
+
+
+### Find subclusters of cluster 12
+
+```{r, eval=FALSE}
+# Find subclusters
+fl_samples_E10.5_12May<- FindSubCluster(
+  fl_samples_E10.5_12May,
+  cluster = 12,
+  graph.name = "integrated_snn",
+  subcluster.name = "subcluster12",
+  resolution = 0.2,
+  algorithm = 1
+) # Algorithm = 4 is Leiden algorithm
+
+DimPlot(fl_samples_E10.5_12May, reduction = "umap", group.by = "subcluster12", label = TRUE, label.size = 6)
+```
+
+
+```{r, eval=FALSE}
+# Update the cluster ident column in the seurat object
+fl_samples_E10.5_12May <- SetIdent(fl_samples_E10.5_12May, value = fl_samples_E10.5_12May@meta.data$subcluster12)
+```
+
+
+
+
+```{r}
+# Plot UMAP
+set.seed(223)
+DimPlot(object = fl_samples_E10.5_12May,
+        reduction = "umap",
+        label = TRUE,
+        group.by = "sample",
+        label.size = 6,
+        pt.size = 1.5)
+
+ggsave("repeat_grouped_unnamed_fl_samples_E10.5_12May.pdf", 
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+
+
+
+```{r}
+# Run PrepSCTFindMarkers to ensure that the fixed value is set properly, as SCT creates corrected counts by setting the sequencing depth for all the cells to a fixed value
+DefaultAssay(fl_samples_E10.5_12May) <- "integrated"
+fl_samples_E10.5_12May <- PrepSCTFindMarkers(fl_samples_E10.5_12May) 
+```
+
+
+
+## Identification of all markers for each cluster(This takes a while to run. Therefore, only use this option if you have just one condition)
+
+```{r, eval=FALSE}
+DefaultAssay(fl_samples_E10.5_12May) <- "SCT"
+# code from the internet on how to remove specific genes before downstream analysis (Satijalab, Github)
+counts <- GetAssayData(fl_samples_E10.5_12May, assay = "SCT")
+counts <- counts[-(which(rownames(counts) %in% c("mt-Atp6", "mt-Nd1", "mt-Co1", "mt-Cytb",  "mt-Co2",  "mt-Nd4", "mt-Co3", "mt-Nd2", "mt-Nd4l", "mt-Atp8", "mt-Nd5", "mt-Nd3", "mt-Cytb1", "mt-Co31", "mt-Nd21",  "mt-Nd51",  "mt-Nd41",  "mt-Nd11", "mt-Nd4l1", "mt-Atp81", "mt-Co32"))),]
+fl_samples_E10.5_12May <- subset(fl_samples_E10.5_12May, features = rownames(counts))
+```
+
+
+```{r, eval=FALSE}
+# Find markers for every cluster compared to all remaining cells, report only the positive ones
+markers_fl_samples_E10.5_12May <- FindAllMarkers(object = fl_samples_E10.5_12May, 
+                          only.pos = TRUE,
+                          assay = "SCT",
+                          logfc.threshold = 0.25,
+                          min.pct = 0.25,
+                          thresh.use = 0.25)
+```
+
+
+
+```{r, eval=FALSE} 
+# Arrange markers by average log2fold change
+markers_fl_samples_E10.5_12May <- markers_fl_samples_E10.5_12May %>% 
+  dplyr::group_by(cluster) %>% 
+  dplyr::arrange(desc(avg_log2FC), .by_group = TRUE)
+
+```
+
+
+```{r}
+# Let us look at the top markers of each cluster
+
+top_3_fl_samples_E10.5_12May <- markers_fl_samples_E10.5_12May %>% group_by(cluster) %>% 
+  slice_max(avg_log2FC, n = 3)
+
+#top_30_markers_fl_samples_E10.5_12May <- markers_fl_samples_E10.5_12May %>% group_by(cluster) %>% 
+  #slice_max(avg_log2FC, n = 30)
+```
+
+
+```{r}
+DefaultAssay(fl_samples_E10.5_12May) <- "SCT"
+```
+
+
+```{r}
+# Megakaryocyte progenitors
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("F2r"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) 
+  
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Itga2b"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+c <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Gp1bb"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+a
+b
+c
+
+```
+
+```{r}
+# Megakaryocytes
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Myl9"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Vwf"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+c <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Ppbp"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+d <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Alox12"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+e <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Zyx"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+ 
+#print(gridExtra::marrangeGrob(list(a,b),ncol = 2, nrow=1, top= ('MEGAKARYOCYTE')))
+a
+b
+c
+d
+e
+```
+
+
+```{r}
+# Mono/Mac
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Ccr2"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+c <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Csf1r"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+ 
+#print(gridExtra::marrangeGrob(list(a,b,c),ncol = 3, nrow=1, top= ('MONOCYTE/KUPFFER')))
+a
+c
+```
+
+```{r}
+# Megakaryocyte-Erythroid progenitors
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Gata1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Gata2"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+c <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Klf1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+ 
+#print(gridExtra::marrangeGrob(list(a,b),ncol = 2, nrow=1, top= ('Megakaryocyte-Erythroid progenitors')))
+a
+b
+c
+```
+
+
+```{r}
+# Megakaryocyte-Erythroid progenitors
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Epor"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Car1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+c <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Muc13"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+ 
+#print(gridExtra::marrangeGrob(list(a,b),ncol = 2, nrow=1, top= ('Megakaryocyte-Erythroid progenitors')))
+a
+b
+c
+```
+
+
+
+
+```{r}
+# Erythroid progenitors
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Kit"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Gata1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+
+#print(gridExtra::marrangeGrob(list(a,b),ncol = 2, nrow=1, top= ('Erythroid progenitors Kit pos, Gata1 pos')))
+a
+b
+```
+
+
+```{r}
+# Erythroblasts
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Hbb-bs"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Hbb-bt"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+c <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Gypa"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+#print(gridExtra::marrangeGrob(list(a,b),ncol = 2, nrow=1, top= ('Erythroblasts - Tfrc high, Kit low/neg, Bpgm low/neg')))
+a
+b
+c
+```
+
+
+```{r}
+# Erythroblasts
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Tfrc"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Cd24a"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+c <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Kit"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7)
+#print(gridExtra::marrangeGrob(list(a,b),ncol = 2, nrow=1, top= ('Erythroblasts - Tfrc high, Kit low/neg, Bpgm low/neg')))
+a
+b
+c
+```
+
+
+```{r}
+# Hepatoblasts
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Afp"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Alb"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+
+#print(gridExtra::marrangeGrob(list(a,b),ncol = 2, nrow=1, top= ('Hepatoblasts Afp pos, Alb pos')))
+a
+b
+```
+
+
+```{r}
+# Endothelial cells
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Kdr"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+b <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Cldn5"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+
+#print(gridExtra::marrangeGrob(list(a,b),ncol = 2, nrow=1, top= ('Endothelial cells Cldn5 pos, Cdh5 pos')))
+a
+b
+```
+
+
+```{r}
+# Mesenchymal cells
+a <- FeaturePlot(fl_samples_E10.5_12May, 
+            reduction = "umap", 
+            features = c("Alcam"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            pt.size = 0.7) 
+a
+
+```
+
+
+
+
+
+
+```{r}
+# Plot top 3 markers per object 
+DotPlot(
+  fl_samples_E10.5_12May,
+  assay = NULL,
+  features = unique(top_3_fl_samples_E10.5_12May$gene),
+  cols = c("lightgrey", "red"),
+  col.min = -2.5,
+  col.max = 2.5,
+  dot.min = 0,
+  dot.scale = 6,
+  idents = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  cluster.idents = FALSE,
+  scale = TRUE,
+  scale.by = "radius",
+  scale.min = NA,
+  scale.max = NA
+) + RotatedAxis() + theme(axis.text = element_text(size = 10, face = "bold")) + ggtitle("FL_E10.5 Top 3 marker genes") + scale_colour_gradient2(low="darkblue", mid="lightgrey", high="red")
+
+
+
+known_markers1 <- c("Gypa", "Tfrc", "Gata1", "Kit", "Bpgm", "Hba-x", "Hbb-y", "Ptn", "Gata2", "Afp", "Alb", "Hnf4a", "Cdh5", "Cldn5", "Spi1", "Csf1r", "Pf4", "Vwf", "Elane", "Hp", "Cx3cr1", "Ifitm1", "Irf8", "Itga2b", "Prtn3", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Cd34", "Fcgr3", "Ccr2", "C1qa", "C1qb", "Prg2", "Stx3", "Nnat", "Pdgfra", "Il7r", "Cd7", "Hlf", "Mecom", "Ly6a", "Prg2", "Ppbp", "Ngp", "Hdc", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Ccr2", "Hdc", "Cpa3", "Gp1bb", "Cd24a", "Gp9", "Muc13", "Hlf", "Hoxa9", "Hoxa7")
+  
+
+  
+  
+known_markers1  <- markers_fl_samples_E10.5_12May %>% 
+                dplyr::filter(gene %in% known_markers1)
+
+DotPlot(
+  fl_samples_E10.5_12May,
+  assay = NULL,
+  features = unique(known_markers1$gene),
+  cols = c("darkblue", "red"),
+  col.min = -2.5,
+  col.max = 2.5,
+  dot.min = 0,
+  dot.scale = 6,
+  idents = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  cluster.idents = FALSE,
+  scale = TRUE,
+  scale.by = "radius",
+  scale.min = NA,
+  scale.max = NA
+) + RotatedAxis() + theme(axis.text = element_text(size = 10, face = "bold")) + ggtitle("FL_E10.5 - Known marker genes") + scale_colour_gradient2(low="darkblue", mid="lightgrey", high="red")
+
+
+```
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May,
+        reduction = "umap",
+        label = TRUE,
+        label.size = 6,
+        pt.size = 1.5)
+```
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May,
+        reduction = "umap",
+        label = FALSE,
+        group.by = "Phase",
+        label.size = 6,
+        pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size =50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold")) +
+            theme(legend.text = element_text(size = 50, face = "bold")) +
+            guides(color = guide_legend(override.aes = list(size = 5))) +
+            theme(axis.text = element_text(size = 50, face = "bold"), 
+            panel.background = element_rect(fill = "white"), 
+            plot.background = element_rect(fill = "white", colour = "black", linewidth = 1)) 
+ggsave("repeated_phase_umap2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May,
+        reduction = "umap",
+        label = FALSE,
+        group.by = "Phase",
+        label.size = 6,
+        pt.size = 1)
+```
+
+
+
+## Annotate clusters in FL_E10.5 samples
+```{r}
+# Fetal liver
+fl_samples_E10.5_12May_named <-  RenameIdents(object = fl_samples_E10.5_12May,
+                                      "0" = "EP1",
+                                      "1" = "MEP",
+                                      "2" = "EP3",
+                                      "3" = "Mk1",
+                                      "4" = "EP2",
+                                      "5" = "Prim-EB",
+                                      "6" = "MkP",
+                                      "7_0" = "PEB1",
+                                      "7_1" = "PEB2",
+                                      "7_2" = "PEB3",
+                                      "8_0" = "EMP1.MPP1",
+                                      "8_1" = "EMP2.MPP2",
+                                      "9" = "Mk2",
+                                      "10_0" = "Mono",
+                                      "10_1" = "Mac",
+                                      "11_0" = "Mast",
+                                      "11_1" = "GP",
+                                      "12_0" = "Mesench",
+                                      "12_1" = "Endo",
+                                      "13" = "Hepato")
+
+fl_samples_E10.5_12May_named$cluster_ident <- Idents(fl_samples_E10.5_12May_named)
+
+```
+
+
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May_named,
+        reduction = "umap",
+        label = TRUE,
+        label.size = 6,
+        pt.size = 1.5)
+```
+
+
+```{r}
+#DefaultAssay(fl_samples_E10.5_12May_named) <- "RNA"
+```
+
+```{r}
+# Run PrepSCTFindMarkers to ensure that the fixed value is set properly, as SCT creates corrected counts by setting the sequencing depth for all the cells to a fixed value
+DefaultAssay(fl_samples_E10.5_12May_named) <- "integrated"
+fl_samples_E10.5_12May_named <- PrepSCTFindMarkers(fl_samples_E10.5_12May_named) 
+```
+
+
+```{r, eval=FALSE}
+# Find markers for every cluster compared to all remaining cells, report only the positive ones
+markers_fl_samples_E10.5_12May_named <- FindAllMarkers(object = fl_samples_E10.5_12May_named, 
+                          only.pos = TRUE,
+                          assay = "SCT",
+                          logfc.threshold = 0.25,
+                          min.pct = 0.25,
+                          thresh.use = 0.25)
+```
+
+
+```{r, eval=FALSE} 
+# Arrange markers by average log2fold change
+markers_fl_samples_E10.5_12May_named <- markers_fl_samples_E10.5_12May_named %>% 
+  dplyr::group_by(cluster) %>% 
+  dplyr::arrange(desc(avg_log2FC), .by_group = TRUE)
+
+
+write.csv(markers_fl_samples_E10.5_12May_named, file = paste0(here("results/FL_E10.5/"), "markers_fl_samples_E10.5_12May_named.csv"))
+```
+
+
+```{r}
+# Let us look at the top markers of each cluster
+
+top_3_markers_fl_samples_E10.5_12May_named <- markers_fl_samples_E10.5_12May_named %>% group_by(cluster) %>% 
+  slice_max(avg_log2FC, n = 3)
+
+#top_30_markers_fl_samples_E12.5_12May <- markers_fl_samples_E12.5_12May %>% group_by(cluster) %>% 
+  #slice_max(avg_log2FC, n = 30)
+```
+
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May_named,
+        reduction = "umap",
+        label = TRUE,
+        label.size = 6,
+        pt.size = 1.5)
+```
+
+
+
+## Subset clusters of interest. 
+
+```{r, eval=FALSE}
+fl_samples_E10.5_12May_named <- subset(fl_samples_E10.5_12May_named, idents =c("EMP1.MPP1", "EMP2.MPP2", "GP", "Mono", "Mac", "Mast", "MEP", "MkP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+```
+
+
+
+```{r}
+DefaultAssay(fl_samples_E10.5_12May_named) <- "RNA"
+# SCTransform the subset Ery object
+fl_samples_E10.5_12May_named <- SCTransform(fl_samples_E10.5_12May_named,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+
+
+```{r}
+fl_samples_E10.5_12May_named@active.ident <- factor(fl_samples_E10.5_12May_named@active.ident, levels = c("EMP1.MPP1", "EMP2.MPP2", "GP", "Mono", "Mac", "Mast", "MEP", "MkP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+```
+
+
+```{r, eval=FALSE}
+fl_samples_E10.5_12May_named$cluster_ident <- factor(fl_samples_E10.5_12May_named$cluster_ident, levels = c("EMP1.MPP1", "EMP2.MPP2", "GP", "Mono", "Mac", "Mast", "MEP", "MkP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+```
+
+
+
+```{r}
+# Set colors
+clust_cols <- c(EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD", MkP = "#00AFBB", Mk2 = "#F8A19F", Mast = "#E2E2E2", PEB1 = "#2ED9FF", PEB2 = "#C4451C", Mono = "#FBE426", Mac = "darkorange2", GP = "grey60", MEP = "#F6222E" ,EMP1.MPP1= "#B00068", PEB3 = "#FE00FA", `Prim-EB` = "#1C8356", EMP2.MPP2 = "#F8766D")
+```
+PEry2 = "#90AD1C", "dodgerblue3", Hepato = "#3283FE", Mesench = , Endo = 
+
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May_named,
+        reduction = "umap",
+        label = TRUE,
+        cols = clust_cols,
+        label.size = 6,
+        pt.size = 1.5)
+```
+
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May_named,
+        reduction = "umap",
+        cols = clust_cols,
+        label = TRUE,
+        label.size = 11,
+        pt.size = 1.5) + NoLegend() +
+        #theme(plot.title = element_text(size = 50, face = "bold")) +
+        theme(axis.text.x = element_blank()) +
+        theme(axis.text.y = element_blank()) +
+        theme(axis.title.x = element_blank()) +
+        theme(axis.title.y = element_blank()) +
+        theme(axis.ticks = element_blank()) +
+        theme(axis.line = element_blank()) +
+        #panel.background = element_rect(fill = "white") +
+        theme(plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) 
+ggsave("repeated_umap2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+
+```{r}
+(ncells_E10.5 <- data.frame(table(fl_samples_E10.5_12May_named$cluster_ident)) %>% dplyr::rename("Clusters" = Var1))
+
+(ncells_E10.5 <- mutate(ncells_E10.5, percent = round((Freq/sum(Freq))*100, digits = 2)))
+ncells_E10.5$percent <- paste0(ncells_E10.5$percent,"%")
+ncells_E10.5
+
+ggplot(ncells_E10.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
+  geom_col() +
+  scale_fill_manual(values = c(EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD", MkP = "#00AFBB", Mk2 = "#F8A19F", Mast = "#E2E2E2", PEB1 = "#2ED9FF", PEB2 = "#C4451C", Mono = "#FBE426", Mac = "darkorange2", GP = "grey60", MEP = "#F6222E" ,EMP1.MPP1= "#B00068", PEB3 = "#FE00FA", `Prim-EB` = "#1C8356", EMP2.MPP2 = "#F8766D")) +
+  theme(axis.text = element_text(size = 50),
+        panel.background = element_rect(fill = "white"), 
+        plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) +
+        theme(axis.title.x = element_text(size =50, face = "bold")) +
+        theme(axis.title.y = element_text(size = 50, face = "bold")) +
+  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 11, face = "bold") +
+  #scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
+  scale_y_continuous(breaks = seq(0, 1900, by=500), limits=c(0,1900)) +
+  xlab("Cell types") + 
+ # theme_bw() + 
+  NoLegend() +
+  coord_flip()
+
+ggsave("repeated_cellsincluster_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+```{r}
+DefaultAssay(fl_samples_E10.5_12May_named) <- "RNA"
+
+# First, subset object into replicates
+E10.5_rep1 <- subset(x = fl_samples_E10.5_12May_named, subset = sample == "FL_E10.5_rep_1")
+E10.5_rep2 <- subset(x = fl_samples_E10.5_12May_named, subset = sample == "FL_E10.5_rep_2")
+
+# Average genes per cell in each object
+(ave_genes_percell_e10.5_rep1 <- mean(Matrix::colSums(GetAssayData(E10.5_rep1, slot = 'counts') > 0)))
+(ave_genes_percell_e10.5_rep2 <- mean(Matrix::colSums(GetAssayData(E10.5_rep2, slot = 'counts') > 0)))
+
+# Get average reads/counts per cell
+(ave_counts_percell_e10.5_rep1 <- mean(E10.5_rep1@meta.data$nUMI))
+(ave_counts_percell_e10.5_rep2 <- mean(E10.5_rep2@meta.data$nUMI))
+
+rm(E10.5_rep1, E10.5_rep2)
+```
+
+
+
+[1] 4167.611
+[1] 4281.467
+[1] 19243.11
+[1] 17704.9
+
+```{r}
+DefaultAssay(fl_samples_E10.5_12May_named) <- "SCT"
+# EMP/MPP
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hlf"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) + 
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank()) 
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hoxa7"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hoxa9"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ly6a"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 2) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank()) 
+
+
+a
+ggsave("EMP7_hlf_markers1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("EMP7_hoxa7_markers2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("EMP7_hoxa9_markers3_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("EMP7_Ly6a_markers4_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+```{r}
+# EMP/MPP
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Fcgr3"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Itga2b"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Kit"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Cd34"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+e <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Cd93"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("EMP_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("EMP_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("EMP_marker3_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("EMP_marker4_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+e
+ggsave("EMP_marker5_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+```{r}
+# EMP2
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Prtn3"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ms4a3"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Mpo"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ptprc"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("EMPalso_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("EMPalso_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("EMPalso_marker3_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("EMPalso_marker4_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+
+```{r}
+
+
+# Megakaryocyte progenitors
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("F2r"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Itga2b"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Gp1bb"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+ 
+a
+ggsave("R_Mk_marker1_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("R_Mk_marker2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("R_Mk_marker3_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+```{r}
+# Megakaryocytes
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Myl9"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Vwf"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ppbp"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Alox12"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+e <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Zyx"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+a
+ggsave("R_Mk_marker4_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("R_Mk_marker5_fl_samples_E10.5_12May_amed.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("R_Mk_marker6_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("R_Mk_marker8_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+e
+ggsave("R_Mk_marker7_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+```{r}
+# Megakaryocyte-Erythroid progenitors
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Gata1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Gata2"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Klf1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+a
+ggsave("R_MEP_marker1_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("R_MEP_marker2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("R_MEP_marker3_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+
+```{r}
+# Megakaryocyte-Erythroid progenitors
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Epor"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Car1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Muc13"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+ 
+a
+ggsave("R_MEP_marker4_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("R_MEP_marker5_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("R_MEP_marker6_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+```{r}
+# Erythroid progenitors
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Kit"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Gata1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Myb"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Cd24a"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+e <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Tfrc"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+a
+ggsave("R_EryP_marker1_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("R_EryP_marker2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("R_EryP_marker3_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("R_EryP_marker4_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+e
+ggsave("R_EryP_marker5_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+```{r}
+# Erythroblasts
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hbb-bs"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hbb-bt"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Gypa"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hba-a1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+e <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Tfrc"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+f <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Cd24a"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("R_Erythb_marker1_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("R_Erythb_marker2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("R_Erythb_marker3_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("R_Erythb_marker4_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+e
+ggsave("R_Erythb_marker5_fl_samples_E10.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15)
+f
+ggsave("R_Erythb_marker6_fl_samples_E10.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+```{r}
+# LP
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Klrd1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Il7r"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("LP_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("LP_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+
+```
+
+
+```{r}
+# Mono
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ccr2"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Csf1r"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("Mono_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("Mono_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width =17, height = 15, device = "tiff")
+
+```
+
+
+
+
+```{r}
+# Mac
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("C1qa"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Aif1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Mertk"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Adgre1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+a
+ggsave("Mac_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("Mac_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("Mac_marker3_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("Mac_marker4_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+
+```
+
+```{r}
+# GP
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Elane"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Prg2"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Prg3"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+a
+ggsave("Gran_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("Gran_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("Gran_marker3_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+```{r}
+# Mast cells
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Cpa3"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hdc"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("Mast_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("Mast_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+
+```
+
+```{r}
+# Primitive Erythrocytes
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hba-x"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hbb-y"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+ 
+a
+ggsave("PEry_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15,  device = "tiff")
+b
+ggsave("PEry_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15,  device = "tiff")
+```
+
+
+
+```{r}
+# Hepatoblasts
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Afp"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Alb"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+a
+ggsave("R_Hepato_marker1_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("R_Hepato_marker2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+```{r}
+# Endothelial cells
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Cldn5"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1) +
+            theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Cdh5"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1) +
+            theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+
+a
+ggsave("Endo_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("Endo_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+```{r}
+# Mesenchymal cells
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ptn"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1) +
+            theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Alcam"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1) +
+            theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+
+a
+ggsave("Mesench_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("Mesench_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+
+# LOOK AT SOME Y AND X CHROMOSOME GENES
+
+```{r}
+# Male genes
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Eif2s3y"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ddx3y"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+a
+ggsave("R_Male_marker1_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("R_Male_marker2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+```{r}
+# Female genes
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Xist"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("R_Female_marker1_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+
+
+```{r}
+# Plot top 3 markers per object 
+a <- DotPlot(
+  fl_samples_E10.5_12May_named,
+  assay = NULL,
+  features = unique(top_3_markers_fl_samples_E10.5_12May_named$gene),
+  cols = c("lightgrey", "red"),
+  col.min = -2.5,
+  col.max = 2.5,
+  dot.min = 0,
+  dot.scale = 6,
+  idents = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  cluster.idents = FALSE,
+  scale = TRUE,
+  scale.by = "radius",
+  scale.min = NA,
+  scale.max = NA
+) + RotatedAxis() + theme(axis.text = element_text(size = 30, face = "bold")) + 
+              theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold")) +
+  theme(legend.text = element_text(size = 20, face = "bold")) +
+  ggtitle("FL_E10.5 Top 3 marker genes") +
+  theme(plot.title = element_text(face = "bold", size = 30)) + 
+  theme(legend.title = element_text(size = 20), legend.position = "top") +
+  scale_colour_gradient2(low="darkblue", mid="lightgrey", high="red")
+
+
+
+
+known_markers1 <- c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "Spi1", "Csf1r", "Pf4", "Vwf", "Elane", "Hp", "Cx3cr1", "Ifitm1", "Irf8", "Itga2b", "Prtn3", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Cd34", "Fcgr3", "Ccr2", "C1qa", "C1qb", "Prg2", "Stx3", "Nnat", "Pdgfra", "Il7r", "Cd7", "Hlf", "Mecom", "Ly6a", "Prg2", "Ppbp", "Ngp", "Hdc", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Ccr2", "Hdc", "Cpa3", "Gp1bb", "Cd24a", "Ly6a", "Hoxa9", "Hoxa7", "Myb", "Epor", "Mpo", "Rhd", "Ms4a3", "Perp", "Muc13", "Plek", "F2r", "Cd93")
+  
+
+  
+  
+known_markers1  <- markers_fl_samples_E10.5_12May_named %>% 
+                dplyr::filter(gene %in% known_markers1)
+
+b <- DotPlot(
+  fl_samples_E10.5_12May_named,
+  assay = NULL,
+  features = unique(known_markers1),
+  cols = c("darkblue", "red"),
+  col.min = -2.5,
+  col.max = 2.5,
+  dot.min = 0,
+  dot.scale = 6,
+  idents = NULL,
+  group.by = NULL,
+  split.by = NULL,
+  cluster.idents = FALSE,
+  scale = TRUE,
+  scale.by = "radius",
+  scale.min = NA,
+  scale.max = NA
+) + RotatedAxis() + theme(axis.text = element_text(size = 30, face = "bold")) + 
+              theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold")) +
+  theme(legend.text = element_text(size = 20, face = "bold")) +
+  theme(legend.title = element_text(size = 20), legend.position = "top") +
+  ggtitle("FL_E10.5 - Known marker genes") +
+  theme(plot.title = element_text(face = "bold", size = 30)) + scale_colour_gradient2(low="darkblue", mid="lightgrey", high="red")
+
+
+a
+ggsave("Dotplot_marker1_fl_samples_E10.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 45, height = 15,
+       device = "pdf",
+       dpi = 300
+       )
+b
+ggsave("Dotplot_marker2_fl_samples_E10.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 45, height = 15,
+      device = "pdf",
+       dpi = 300 )
+```
+
+
+
+```{r}
+known_markers1 <- c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "Spi1", "Csf1r", "Pf4", "Vwf", "Elane", "Hp", "Cx3cr1", "Ifitm1", "Irf8", "Itga2b", "Prtn3", "Thbs1","Klf1", "Car1", "Cd34", "Fcgr3", "Ccr2", "C1qa", "C1qb", "Prg2", "Stx3", "Il7r", "Cd7", "Hlf", "Mecom","Prg2", "Ppbp", "Ngp", "Hdc", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Hdc", "Cpa3", "Gp1bb", "Cd24a","Hoxa9", "Hoxa7", "Myb", "Epor", "Mpo", "Rhd", "Ms4a3", "Perp", "Muc13", "Plek", "F2r", "Cd93")
+```
+
+
+
+```{r}
+library(scCustomize)
+
+#tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E10.5_12May_named.tif", width = 550, height = 550)
+Clustered_DotPlot(seurat_object = fl_samples_E10.5_12May_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "Spi1", "Csf1r", "Pf4", "Vwf", "Elane", "Hp", "Cx3cr1", "Ifitm1", "Irf8", "Itga2b", "Prtn3", "Thbs1","Klf1", "Car1", "Cd34", "Fcgr3", "Ccr2", "C1qa", "C1qb", "Prg2", "Stx3", "Il7r", "Prg3", "Hlf", "Mecom","Prg2", "Ppbp", "S100a8", "Hdc", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Hdc", "Cpa3", "Gp1bb", "Cd24a","Hoxa9", "Hoxa7", "Myb", "Epor", "Mpo", "Rhd", "Ms4a3", "Perp", "Muc13", "Plek", "F2r", "Cd93"), k = 10, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 10, row_label_fontface = "bold",colors_use_idents = c(EMP1.MPP1= "#B00068", EMP2.MPP2 = "#F8766D", GP = "grey60", Mono = "#FBE426", Mac = "darkorange2", Mast = "#E2E2E2", MEP = "#F6222E" , MkP = "#00AFBB", Mk1 = "#DEA0FD", Mk2 = "#F8A19F", `Prim-EB` = "#1C8356", EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", PEB1 = "#2ED9FF", PEB2 = "#C4451C", PEB3 = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red"))
+
+#dev.off()
+```
+
+
+
+
+```{r}
+# Plot UMAP
+set.seed(1203)
+DimPlot(object = fl_samples_E10.5_12May_named,
+        reduction = "umap",
+        cols = clust_cols,
+        split.by = "sample",
+        label.size = 6,
+        pt.size = 1.5) +
+        theme(plot.title = element_text(size = 50, face = "bold")) +
+        theme(axis.text.x = element_blank()) +
+        theme(axis.text.y = element_blank()) +
+        theme(axis.title.x = element_blank()) +
+        theme(axis.title.y = element_blank()) +
+        theme(axis.line = element_blank()) +
+        theme(axis.ticks = element_blank())
+ggsave("R_replicates_color_umap_fl_samples_E10.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E10.5_12May_named,
+        reduction = "umap",
+        label = FALSE,
+        group.by = "sample",
+        label.size = 6,
+        pt.size = 1.5) +
+        theme(plot.title = element_text(size = 50, face = "bold")) +
+        theme(axis.text.x = element_blank()) +
+        theme(axis.text.y = element_blank()) +
+        theme(axis.title.x = element_blank()) +
+        theme(axis.title.y = element_blank()) +
+        theme(axis.line = element_blank()) +
+        theme(axis.ticks = element_blank())
+ggsave("R_by_sample_umap_of_replicates_fl_samples_E10.5_12May_amed.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+# Plot top 3 genes
+```{r}
+top_3_markers <- top_3_markers_fl_samples_E10.5_12May_named %>% 
+                  ungroup() %>%
+                  dplyr::select(gene) %>% 
+                  unique() %>% 
+                  .[!is.na(.)]
+
+mat <- fl_samples_E10.5_12May_named@assays$SCT@data[top_3_markers, ] %>% as.matrix()
+mat <- t(scale(t(mat)))
+
+cols_sample_group <- c(FL_E10.5 = "#E2E2E2" )
+
+clust <- c("EMP1.MPP1", "EMP2.MPP2", "GP", "Mono", "Mac", "Mast", "MEP", "MkP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3",  "PEB1", "PEB2", "PEB3")
+
+clusters <- fl_samples_E10.5_12May_named$cluster_ident
+
+                
+annotation_col <-  data.frame(E10.5=clusters)
+
+annotation_colors <- list(E10.5 = clust_cols,
+                          Timepoint=cols_sample_group)
+                                        
+# Determine expression ranges in the matrix
+quantile(mat, c(0.1, 0.95))
+cols <- circlize::colorRamp2(c(-1, 0, 2), c("blue", "black", "yellow"))
+
+
+#pdf(file="~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots/R_top3_heatmap_fl_samples_E10.5_12May_named.pdf", width = 25, height = 25)
+heat <- ComplexHeatmap::Heatmap(mat, name="E10.5 Top3",
+                        column_split = factor(clusters, levels = clust),
+                        cluster_columns = TRUE,
+                        show_column_dend = FALSE,
+                        show_column_names = FALSE,
+                        column_title = clust,
+                        cluster_column_slices = FALSE,
+                        column_title_gp = gpar(fontsize = 20),
+                        row_names_gp = gpar(fontsize = 25),
+                        column_gap = unit(0.5, "mm"),
+                        cluster_rows = TRUE,
+                        show_row_dend = FALSE,
+                        col = cols,
+                        row_gap = unit(10, "mm"),
+                        column_title_rot = 60,
+                        top_annotation = HeatmapAnnotation(df = annotation_col, col = annotation_colors, show_legend = FALSE, show_annotation_name = FALSE),
+                        heatmap_legend_param = list(labels_gp = gpar(fontsize = 30), title_gp = gpar(fontsize = 30, fontface = "bold")),
+                        width = 25,
+                        height = 25,
+                        use_raster = TRUE,
+                        raster_quality = 4)
+draw(heat)
+#dev.off()
+#annotation_legend_param = list(labels_gp = gpar(fontsize = 30),show_annotation_name = TRUE,title_gp = gpar(fontsize = 30, fontface = "bold")
+
+```
+
+
+#Code copied from [https://divingintogeneticsandgenomics.rbind.io/post/stacked-violin-plot-for-visualizing-single-cell-data-in-seurat/]
+```{r}
+## remove the x-axis text and tick
+## plot.margin to adjust the white space between each plot.
+## ... pass any arguments to VlnPlot in Seurat
+modify_vlnplot<- function(obj, 
+                          feature, 
+                          pt.size = 0, 
+                          plot.margin = unit(c(-0.75, 0, -0.75, 0), "cm"),
+                          ...) {
+  p<- VlnPlot(obj, features = feature, pt.size = pt.size, ... )  + 
+    xlab("") + ylab(feature) + ggtitle("") + 
+    theme(legend.position = "none", 
+          axis.text.x = element_blank(),
+          plot.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.ticks.x = element_blank(), 
+          axis.title.y = element_text(size = rel(1), angle = 0, face = "bold"), 
+          axis.text.y = element_text(size = rel(1)), 
+          plot.margin = plot.margin ) + geom_boxplot(outlier.shape = NA) 
+  return(p)
+}
+
+## extract the max value of the y axis
+extract_max<- function(p){
+  ymax<- max(ggplot_build(p)$layout$panel_scales_y[[1]]$range$range)
+  return(ceiling(ymax))
+}
+
+
+## main function
+StackedVlnPlot<- function(obj, features,
+                          pt.size = 0, 
+                          plot.margin = unit(c(-0.75, 0, -0.75, 0), "cm"),
+                          ...) {
+  
+  plot_list<- purrr::map(features, function(x) modify_vlnplot(obj = obj,feature = x, ...))
+  
+  # Add back x-axis title to bottom plot. patchwork is going to support this?
+  plot_list[[length(plot_list)]]<- plot_list[[length(plot_list)]] +
+    theme(axis.text.x=element_text(angle = 45, face = "bold"), axis.ticks.x = element_line())
+  
+  # change the y-axis tick to only max value 
+  ymaxs<- purrr::map_dbl(plot_list, extract_max)
+  plot_list<- purrr::map2(plot_list, ymaxs, function(x,y) x + 
+                            scale_y_continuous(breaks = c(y)) + 
+                            expand_limits(y = y))
+
+  p<- patchwork::wrap_plots(plotlist = plot_list, ncol = 1)
+  return(p)
+}
+```
+
+
+
+```{r}
+# MEP
+StackedVlnPlot(obj = fl_samples_E14.5_12May_named, features = c("Gata1", "Car1", "Gata2", "Klf1", "Muc13", "Epor"), group.by = "cluster_ident", add.noise = FALSE, pt.size = 0, cols = clust_cols, slot = "data")
+
+ggsave("MEP_violin_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+```{r}
+# Megakaryocytes
+StackedVlnPlot(obj = fl_samples_E14.5_12May_named, features = c("Pf4", "Itga2b", "Ppbp", "Thbs1", "Gp9", "Zyx"), group.by = "cluster_ident", add.noise = FALSE, pt.size = 0, cols = clust_cols, slot = "data") 
+
+ggsave("Mk_violin_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15)
+```
+Zyx has the highest expression in megakaryocytes. It could be a new marker gene for identifying megakaryocytes.
+
+
+```{r}
+# Erythroid cells
+StackedVlnPlot(obj = fl_samples_E14.5_12May_regressed_named, features = c("Myb", "Kit", "Gata1", "Tfrc", "Klf1", "Gypa", "Cd24a", "Epor", "Hba-a1", "Hba-a2", "Hbb-bs", "Hbb-bt", "Hbb-bh1"), group.by = "cluster_ident", add.noise = FALSE, pt.size = 0, cols = clust_cols, slot = "data") 
+
+ggsave("All_Ery_violin_fl_samples_E14.5_12May_regressed_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15)
+```
+
+# Look at Cd24a and Kit expression levels in the erythroid clusters
+```{r}
+# Erythroid cells
+StackedVlnPlot(obj = fl_samples_E10.5_12May_named, features = c("Kit", "Tfrc", "Klf1", "Cd24a"), group.by = "cluster_ident", add.noise = FALSE, pt.size = 0, cols = clust_cols, slot = "data") 
+
+ggsave("Cd24a_Kit_violin_fl_samples_E10.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+
+
+
+```{r}
+# Hepatoblasts
+StackedVlnPlot(obj = fl_samples_E14.5_12May_named, features = c("Afp", "Alb", "Ttr", "Hnf4a"), group.by = "cluster_ident", add.noise = FALSE, pt.size = 0, cols = clust_cols, slot = "data")
+
+ggsave("Hepato_violin_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15)
+```
+
+```{r}
+# Endothelial
+StackedVlnPlot(obj = fl_samples_E14.5_12May_named, features = c("Cldn5", "Cdh5"), group.by = "cluster_ident", add.noise = FALSE, pt.size = 0, cols = clust_cols, slot = "data")
+
+ggsave("Endo_violin_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15)
+```
+
+```{r}
+# Mesenchymal cells
+StackedVlnPlot(obj = fl_samples_E14.5_12May_named, features = c("Alcam", "Col1a2"), group.by = "cluster_ident", add.noise = FALSE, pt.size = 0, cols = clust_cols, slot = "data")
+
+ggsave("Mesench_violin_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+# Use differentially expressed genes to find new possible marker genes for the clusters
+
+
+## Subset clusters of interest. 
+
+```{r, eval=FALSE}
+fl_samples_E10.5_12May_named_subset <- subset(fl_samples_E10.5_12May_named, idents =c("MEP", "MkP", "Mk1", "Mk2", "EP1", "EP2", "EP3",  "PEB1", "PEB2", "PEB3"))
+```
+
+
+
+```{r}
+DefaultAssay(fl_samples_E10.5_12May_named_subset) <- "RNA"
+# SCTransform the subset Ery object
+fl_samples_E10.5_12May_named_subset <- SCTransform(fl_samples_E10.5_12May_named_subset,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+
+```{r}
+# Set colors
+clust_cols_subset <- c(EP1 = "dodgerblue3", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD", MkP = "#00AFBB", Mk2 = "lightsteelblue4",PEB1 = "#2ED9FF", PEB2 = "#C4451C", MEP = "#F6222E" ,PEB3 = "#FE00FA")
+```
+EP5a = "#325A9B", 
+
+
+```{r}
+# Plot UMAP
+set.seed(12098)
+DimPlot(object = fl_samples_E10.5_12May_named_subset,
+        reduction = "umap",
+        cols = clust_cols_subset,
+        label = TRUE,
+        label.size = 6,
+        pt.size = 1.5) + NoLegend()
+
+ggsave("R_umap_fl_samples_E10.5_12May_named_subset.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15)
+```
+
+# WHY DO SOME EP1 CELLS DEDIFFERENTIATE INTO MEPs? PERFORM DIFFERENTIAL GENE EXPRESSION ANALYSIS BETWEEN EP1 AND OTHER EPs
+
+```{r}
+# Run PrepSCTFindMarkers to ensure that the fixed value is set properly, as SCT creates corrected counts by setting the sequencing depth for all the cells to a fixed value
+DefaultAssay(fl_samples_E10.5_12May_named_subset) <- "integrated"
+fl_samples_E10.5_12May_named_subset <- PrepSCTFindMarkers(fl_samples_E10.5_12May_named_subset) 
+```
+
+
+```{r}
+#EP1_vs_MEP-EP_E10.5_mep_ep_ep1 <- 
+EP1_vs_EP2_EP3_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named_subset, 
+                                  ident.1 = "EP1",
+                                  ident.2 = c("EP2", "EP3"),
+                                  assay = "SCT")
+
+EP1_vs_EP2_EP3_E10.5_subset
+```
+
+
+```{r}
+# Arrange adjusted p-values
+EP1_vs_EP2_EP3_E10.5_subset <- EP1_vs_EP2_EP3_E10.5_subset %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(EP1_vs_EP2_EP3_E10.5_subset))
+
+# What is the total number of genes in the DE analysis?
+nrow(EP1_vs_EP2_EP3_E10.5_subset)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+EP1_vs_EP2_EP3_E10.5_subset_signif <- EP1_vs_EP2_EP3_E10.5_subset %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(EP1_vs_EP2_EP3_E10.5_subset_signif)
+
+# How many genes are upregulated?
+(EP1_vs_EP2_EP3_E10.5_subset_upreg <- EP1_vs_EP2_EP3_E10.5_subset_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(EP1_vs_EP2_EP3_E10.5_subset_upreg)
+
+# How many genes are down-regulated?
+(EP1_vs_EP2_EP3_E10.5_subset_downreg <- EP1_vs_EP2_EP3_E10.5_subset_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(EP1_vs_EP2_EP3_E10.5_subset_downreg)
+```
+
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(EP1_vs_EP2_EP3_E10.5_subset,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP1_vs_EP2_EP3_E10.5_subset.rds")))
+
+# Save significant DEGs
+saveRDS(EP1_vs_EP2_EP3_E10.5_subset_signif,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP1_vs_EP2_EP3_E10.5_subset_signif.rds")))
+
+# Save upregulated genes
+saveRDS(EP1_vs_EP2_EP3_E10.5_subset_upreg,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP1_vs_EP2_EP3_E10.5_subset_upreg.rds")))
+
+# Save downregulated genes
+saveRDS(EP1_vs_EP2_EP3_E10.5_subset_downreg,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP1_vs_EP2_EP3_E10.5_subset_downreg.rds")))
+```
+
+
+
+```{r}
+EnhancedVolcano(EP1_vs_EP2_EP3_E10.5_subset_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(EP1_vs_EP2_EP3_E10.5_subset_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(EP1_vs_EP2_EP3_E10.5_subset_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(EP1_vs_EP2_EP3_E10.5_subset_signif),
+                pCutoff = 10e-5,
+                pointSize = 4,
+                labSize = 5,
+                #drawConnectors = TRUE,
+                #max.overlaps = Inf,
+                labFace = "bold",
+                axisLabSize = 30,
+                subtitleLabSize = 30,
+                legendLabSize = 30,
+                legendIconSize = 15,
+                captionLabSize = 30,
+                FCcutoff = 0,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E10.5 EP1 vs EP2 & EP3", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("EP1_vs_EP2_EP3_volcano_fl_samples_E10.5_12May_named_subset.pdf",
+       path = "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/DE_analysis/figures/FL_E10.5/",
+       width = 15, height = 15)
+```
+
+
+
+```{r}
+#EP1_vs_EP2 AND EP3
+MEP_vs_EP2_EP3_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named_subset, 
+                                  ident.1 = "MEP",
+                                  ident.2 = c("EP2", "EP3"),
+                                  assay = "SCT")
+
+MEP_vs_EP2_EP3_E10.5_subset
+```
+
+```{r}
+# Arrange adjusted p-values
+MEP_vs_EP2_EP3_E10.5_subset <- MEP_vs_EP2_EP3_E10.5_subset %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(MEP_vs_EP2_EP3_E10.5_subset))
+
+# What is the total number of genes in the DE analysis?
+nrow(MEP_vs_EP2_EP3_E10.5_subset)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+MEP_vs_EP2_EP3_E10.5_subset_signif <- MEP_vs_EP2_EP3_E10.5_subset %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(MEP_vs_EP2_EP3_E10.5_subset_signif)
+
+# How many genes are upregulated?
+(MEP_vs_EP2_EP3_E10.5_subset_upreg <- MEP_vs_EP2_EP3_E10.5_subset_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(MEP_vs_EP2_EP3_E10.5_subset_upreg)
+
+# How many genes are down-regulated?
+(MEP_vs_EP2_EP3_E10.5_subset_downreg <- MEP_vs_EP2_EP3_E10.5_subset_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(MEP_vs_EP2_EP3_E10.5_subset_downreg)
+```
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(MEP_vs_EP2_EP3_E10.5_subset,
+          paste0(here("DE_analysis/results/FL_E10.5", "MEP_vs_EP2_EP3_E10.5_subset.rds")))
+
+# Save significant DEGs
+saveRDS(MEP_vs_EP2_EP3_E10.5_subset_signif,
+          paste0(here("DE_analysis/results/FL_E10.5", "MEP_vs_EP2_EP3_E10.5_subset_signif.rds")))
+
+# Save upregulated genes
+saveRDS(MEP_vs_EP2_EP3_E10.5_subset_upreg,
+          paste0(here("DE_analysis/results/FL_E10.5", "MEP_vs_EP2_EP3_E10.5_subset_upreg.rds")))
+
+# Save downregulated genes
+saveRDS(MEP_vs_EP2_EP3_E10.5_subset_downreg,
+          paste0(here("DE_analysis/results/FL_E10.5", "MEP_vs_EP2_EP3_E10.5_subset_downreg.rds")))
+```
+
+
+
+```{r}
+EnhancedVolcano(MEP_vs_EP2_EP3_E10.5_subset_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(MEP_vs_EP2_EP3_E10.5_subset_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(MEP_vs_EP2_EP3_E10.5_subset_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(MEP_vs_EP2_EP3_E10.5_subset_signif),
+                pCutoff = 10e-5,
+                pointSize = 4,
+                labSize = 5,
+                #drawConnectors = TRUE,
+                #max.overlaps = Inf,
+                labFace = "bold",
+                axisLabSize = 30,
+                subtitleLabSize = 30,
+                legendLabSize = 30,
+                legendIconSize = 15,
+                captionLabSize = 30,
+                FCcutoff = 0,
+                #drawConnectors = TRUE,
+                #max.overlaps = Inf,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E10.5 MEP vs EP2 & EP3", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("MEP.EP2_EP3_volcano_fl_samples_E10.5_12May_named_subset.pdf",
+       path = "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/DE_analysis/figures/FL_E10.5/",
+       width = 15, height = 15)
+```
+
+```{r}
+EP1_vs_MEP_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named_subset, 
+                                  ident.1 = "EP1",
+                                  ident.2 = "MEP",
+                                  assay = "SCT")
+
+EP1_vs_MEP_E10.5_subset
+```
+
+
+```{r}
+# Arrange adjusted p-values
+EP1_vs_MEP_E10.5_subset <- EP1_vs_MEP_E10.5_subset %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(EP1_vs_MEP_E10.5_subset))
+
+# What is the total number of genes in the DE analysis?
+nrow(EP1_vs_MEP_E10.5_subset)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+EP1_vs_MEP_E10.5_subset_signif <- EP1_vs_MEP_E10.5_subset %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(EP1_vs_MEP_E10.5_subset_signif)
+
+# How many genes are upregulated?
+(EP1_vs_MEP_E10.5_subset_upreg <- EP1_vs_MEP_E10.5_subset_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(EP1_vs_MEP_E10.5_subset_upreg)
+
+# How many genes are down-regulated?
+(EP1_vs_MEP_E10.5_subset_downreg <- EP1_vs_MEP_E10.5_subset_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(EP1_vs_MEP_E10.5_subset_downreg)
+```
+
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(EP1_vs_MEP_E10.5_subset,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP1_vs_MEP_E10.5_subset.rds")))
+
+# Save significant DEGs
+saveRDS(EP1_vs_MEP_E10.5_subset_signif,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP1_vs_MEP_E10.5_subset_signif.rds")))
+
+# Save upregulated genes
+saveRDS(EP1_vs_MEP_E10.5_subset_upreg,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP1_vs_MEP_E10.5_subset_upreg.rds")))
+
+# Save downregulated genes
+saveRDS(EP1_vs_MEP_E10.5_subset_downreg,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP1_vs_MEP_E10.5_subset_downreg.rds")))
+```
+
+
+```{r}
+EnhancedVolcano(EP1_vs_MEP_E10.5_subset_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(EP1_vs_MEP_E10.5_subset_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(EP1_vs_MEP_E10.5_subset_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(EP1_vs_MEP_E10.5_subset_signif),
+                pCutoff = 10e-5, 
+                pointSize = 4,
+                labSize = 5,
+                #drawConnectors = TRUE,
+                #max.overlaps = Inf,
+                labFace = "bold",
+                axisLabSize = 30,
+                subtitleLabSize = 30,
+                legendLabSize = 30,
+                legendIconSize = 15,
+                captionLabSize = 30,
+                FCcutoff = 0,
+                #drawConnectors = TRUE,
+                #max.overlaps = Inf,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E10.5 EP1 vs MEP", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("EP1.MEP_volcano_fl_samples_E10.5_12May_named_subset.pdf",
+       path = "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/DE_analysis/figures/FL_E10.5/",
+       width = 15, height = 15)
+```
+
+```{r}
+EP2_vs_EP1_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named_subset, 
+                                  ident.1 = "EP2",
+                                  ident.2 = "EP1",
+                                  assay = "SCT")
+
+EP2_vs_EP1_E10.5_subset
+```
+
+
+```{r}
+# Arrange adjusted p-values
+EP2_vs_EP1_E10.5_subset <- EP2_vs_EP1_E10.5_subset %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(EP2_vs_EP1_E10.5_subset))
+
+# What is the total number of genes in the DE analysis?
+nrow(EP2_vs_EP1_E10.5_subset)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+EP2_vs_EP1_E10.5_subset_signif <- EP2_vs_EP1_E10.5_subset %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(EP2_vs_EP1_E10.5_subset_signif)
+
+# How many genes are upregulated?
+(EP2_vs_EP1_E10.5_subset_upreg <- EP2_vs_EP1_E10.5_subset_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(EP2_vs_EP1_E10.5_subset_upreg)
+
+# How many genes are down-regulated?
+(EP2_vs_EP1_E10.5_subset_downreg <- EP2_vs_EP1_E10.5_subset_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(EP2_vs_EP1_E10.5_subset_downreg)
+```
+
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(EP2_vs_EP1_E10.5_subset,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP2_vs_EP1_E10.5_subset.rds")))
+
+# Save significant DEGs
+saveRDS(EP2_vs_EP1_E10.5_subset_signif,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP2_vs_EP1_E10.5_subset_signif.rds")))
+
+# Save upregulated genes
+saveRDS(EP2_vs_EP1_E10.5_subset_upreg,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP2_vs_EP1_E10.5_subset_upreg.rds")))
+
+# Save downregulated genes
+saveRDS(EP2_vs_EP1_E10.5_subset_downreg,
+          paste0(here("DE_analysis/results/FL_E10.5", "EP2_vs_EP1_E10.5_subset_downreg.rds")))
+```
+
+
+```{r}
+EnhancedVolcano(EP2_vs_EP1_E10.5_subset_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(EP2_vs_EP1_E10.5_subset_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(EP2_vs_EP1_E10.5_subset_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(EP2_vs_EP1_E10.5_subset_signif),
+                pCutoff = 10e-5, 
+                pointSize = 4,
+                labSize = 5,
+                #drawConnectors = TRUE,
+                #max.overlaps = Inf,
+                labFace = "bold",
+                axisLabSize = 30,
+                subtitleLabSize = 30,
+                legendLabSize = 30,
+                legendIconSize = 15,
+                captionLabSize = 30,
+                FCcutoff = 0,
+                #drawConnectors = TRUE,
+                #max.overlaps = Inf,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E10.5 EP2 vs EP1", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("EP2.EP1_volcano_fl_samples_E10.5_12May_named_subset.pdf",
+       path = "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/DE_analysis/figures/FL_E10.5/",
+       width = 15, height = 15)
+```
+
+
+I WILL DO RNA VELOCITY AND TRAJECTORY INFERENCE BEFORE I COME BACK TO DIFFERENTIAL GENE EXPRESSION ANALYSIS AND PATHWAY ANALYSIS
+
+```{r}
+#dir.create("~/myproject/sc_analysis_project/msc_project/rnavelocity/E10.5_rnavelocity")
+E10.5_rnavelo <- "~/myproject/sc_analysis_project/msc_project/rnavelocity/E10.5_rnavelocity/"
+```
+
+
+## PREPARE ERYTHROID SEURAT OBJECT METADATA FOR RNA VELOCITY (https://smorabit.github.io/tutorials/8_velocyto/)
+
+## Ery
+```{r}
+# Make a copy of the original object to avoid stories that touch
+fl_samples_E10.5_12May_named1 <- fl_samples_E10.5_12May_named
+# save metadata table
+fl_samples_E10.5_12May_named1$barcode <- colnames(fl_samples_E10.5_12May_named1)
+fl_samples_E10.5_12May_named1$UMAP_1 <- fl_samples_E10.5_12May_named1@reductions$umap@cell.embeddings[,1]
+fl_samples_E10.5_12May_named1$UMAP_2 <- fl_samples_E10.5_12May_named1@reductions$umap@cell.embeddings[,2]
+```  
+
+
+```{r}
+# Select column variables of interest
+Ery_E10.5_metadata <- fl_samples_E10.5_12May_named1@meta.data
+Ery_E10.5_metadata <- Ery_E10.5_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident, barcode, UMAP_1, UMAP_2)) %>% dplyr::rename("CellID" = cells)
+
+fl_samples_E10.5_12May_named_subset1@meta.data <- Ery_E10.5_metadata
+```
+
+```{r}
+write.csv(fl_samples_E10.5_12May_named1@meta.data, file = paste0(E10.5_rnavelo, "Ery_E10.5_metadata.csv"), quote = F, row.names = F)
+
+```
+
+
+```{r}
+# Write expression counts matrix
+Ery_E10.5_counts_matrix <- GetAssayData(fl_samples_E10.5_12May_named1, assay = "SCT", slot = "counts")
+writeMM(Ery_E10.5_counts_matrix, file = paste0(E10.5_rnavelo, "Ery_E10.5_counts.mtx"))
+```
+
+```{r}
+# Write dimensionality reduction matrix
+write.csv(fl_samples_E10.5_12May_named1@reductions$pca@cell.embeddings, file = paste0(E10.5_rnavelo, "Ery_E10.5_pca.csv"), quote = F, row.names = F)
+```
+
+
+```{r}
+# Write gene names
+write.table(data.frame("gene" = rownames(Ery_E10.5_counts_matrix)), file = paste0(E10.5_rnavelo, "Ery_E10.5_gene_names.csv"), quote = F, row.names = F, col.names = F)
+```
+
+
+
+
+## Subset Erythroid progenitors and regress out sex genes 
+
+## Subset clusters of interest. 
+
+```{r, eval=FALSE}
+fl_samples_E10.5_12May_named_subset_DEG <- subset(fl_samples_E10.5_12May_named_subset, idents =c("EP1", "EP2", "EP3"))
+ 
+```
+
+
+
+```{r}
+# SCTransform the subset Ery object
+fl_samples_E10.5_12May_named_subset_DEG <- SCTransform(fl_samples_E10.5_12May_named_subset_DEG,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+
+## Reannotate clusters in FL_E10.5 samples for DEG analysis between erythroid progenitors
+
+```{r}
+# Fetal liver
+fl_samples_E10.5_12May_named_subset_DEG_merge <-  RenameIdents(object = fl_samples_E10.5_12May_named_subset_DEG,
+                                                  "EP1" = "EP",
+                                                  "EP2" = "EP",
+                                                  "EP3" = "EP")
+
+fl_samples_E10.5_12May_named_subset_DEG_merge$cluster_ident <- Idents(fl_samples_E10.5_12May_named_subset_DEG_merge)
+
+```
+
+
+```{r}
+table(fl_samples_E10.5_12May_named_subset_DEG_merge$cluster_ident, fl_samples_E10.5_12May_named_subset_DEG_merge$sample_group)
+```
+
+
+```{r}
+# Set colors
+clust_cols_EP <- c(EP = "#16FF32")
+```
+
+
+
+
+
+```{r}
+# Plot UMAP
+set.seed(12098)
+DimPlot(object = fl_samples_E10.5_12May_named_subset_DEG_merge,
+        reduction = "umap",
+        cols = clust_cols_EP,
+        label = TRUE,
+        label.size = 6,
+        pt.size = 1.5) + NoLegend()
+
+ggsave("R_umap_fl_samples_E10.5_12May_named_subset_DEG_merge.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+```{r}
+# Subset Cd45 (Ptprc) negative EPs
+fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45 <- subset(fl_samples_E10.5_12May_named_subset_DEG_merge, subset = Ptprc == 0)
+```
+
+
+
+
+
+```{r, eval=FALSE}
+# Save integrated clustered and identified FL_E10.5 data
+
+# Sept 11
+saveRDS(fl_samples_E10.5_12May, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_clustered_sexgenesnotremoved.rds")
+saveRDS(fl_samples_E10.5_12May_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named.rds")
+saveRDS(markers_fl_samples_E10.5_12May_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/markers_fl_samples_E10.5_12May_named.rds")
+saveRDS(fl_samples_E10.5_12May_named_subset, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset.rds")
+saveRDS(fl_samples_E10.5_12May_named_subset_DEG, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset_DEG.rds")
+saveRDS(fl_samples_E10.5_12May_named_subset_DEG_merge, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset_DEG_merge.rds")
+saveRDS(fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45.rds")
+```
+
+
+
+```{r}
+sessionInfo()
+```
+
+
+
+
+
+
+
+# Determine sex of cells at E10.5 using cellXY
+```{r}
+library(cellXY)
+library(speckle)
+library(SingleCellExperiment)
+library(CellBench)
+library(org.Mm.eg.db)
+library(caret)
+library(randomForest)
+
+fl_samples_E10.5_12May_regressed_counts <- fl_samples_E10.5_12May_regressed@assays$RNA@counts
+ann <- AnnotationDbi::select(org.Mm.eg.db, keys=rownames(fl_samples_E10.5_12May_regressed),
+              columns=c("ENSEMBL","SYMBOL"), keytype="SYMBOL")
+```
+
+
+```{r}
+# How many Ensembl identifiers have an associated gene symbol
+which(is.na(ann$ENSEMBL)) %>% length()
+
+# How many of them are unique
+which(duplicated(ann$ENSEMBL)) %>% length()
+
+# Determine the indices for the non-NA genes
+non_na_idx <- !is.na(ann$ENSEMBL)
+non_duplicated_idx <- which(duplicated(ann$ENSEMBL) == FALSE)
+
+# How many rows does annotations have?
+ann %>% nrow()
+
+# Return only the non-duplicated genes using the indices
+ann <- ann[non_na_idx, ]
+ann <- ann[non_duplicated_idx, ]
+
+# How many rows does annotations now have?
+ann %>% nrow()
+
+
+m <- match(rownames(fl_samples_E10.5_12May_regressed_counts), ann$SYMBOL)
+rownames(fl_samples_E10.5_12May_regressed_counts) <- ann$SYMBOL[m]
+```
+
+
+```{r}
+db_pred =findMfDoublet(x=fl_samples_E10.5_12May_regressed_counts, genome="Mm")
+db_pred$cluster_ident <- Idents(fl_samples_E10.5_12May_regressed)
+print(table(db_pred$prediction, db_pred$cluster_ident))
+```
+
+Out of 9167 cells in the fl_samples_E10.5_12May_regressed seurat object, 70 were predicted to be sex doublets and were filtered out. 9095 cells remaining.
+
+```{r}
+# Filter out sex doublets
+singlets = colnames(fl_samples_E10.5_12May_regressed_counts)[db_pred$prediction=="Singlet"]
+length(singlets)
+fl_samples_E10.5_12May_regressed <- subset(fl_samples_E10.5_12May_regressed, cells = singlets)
+
+#dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/results/FL_E10.5/EPa_vs_EPb_upregulated")
+#dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/results/FL_E10.5/EPa_vs_EPb_downregulated")
+```
+
+
+```{r}
+fl_samples_E10.5_12May_regressed_counts <- fl_samples_E10.5_12May_regressed@assays$RNA@counts
+sex <- classifySex(fl_samples_E10.5_12May_regressed_counts, genome="Mm")
+table(sex$prediction)
+```
+
+Female   Male     NA 
+  3676   4852    567 
+
+  
+```{r}
+sex <- rownames_to_column(sex, var = "cells")
+metadata <- fl_samples_E10.5_12May_regressed@meta.data
+metadata <- left_join(metadata, sex, by = "cells")
+
+na_sex <- dplyr::filter(metadata, prediction == "NA")
+nrow(na_sex)
+
+fl_samples_E10.5_12May_regressed@meta.data <- metadata
+rownames(fl_samples_E10.5_12May_regressed@meta.data) <- fl_samples_E10.5_12May_regressed@meta.data$cells
+table(fl_samples_E10.5_12May_regressed$sample_group, fl_samples_E10.5_12May_regressed$prediction)
+fl_samples_E10.5_12May_regressed$prediction <- factor(fl_samples_E10.5_12May_regressed$prediction)
+```
+
+
+
+```{r}
+# Subset cells with NA sex values
+#fl_samples_E10.5_12May_regressed_nosex <- subset(fl_samples_E10.5_12May_regressed, subset = prediction == "NA")
+
+# Subset cells with Xist
+#fl_samples_E10.5_12May_regressed_xist <- subset(fl_samples_E10.5_12May_regressed_nosex, subset = Xist > 0)
+
+#fl_samples_E10.5_12May_regressed$prediction <- ifelse(fl_samples_E10.5_12May_regressed$cells %in% fl_samples_E10.5_12May_regressed_xist$cells, "Female", fl_samples_E10.5_12May_regressed$prediction)
+
+#fl_samples_E10.5_12May_regressed$prediction <- ifelse(fl_samples_E10.5_12May_regressed$cells %in% fl_samples_E10.5_12May_regressed_xist$cells, "Female", fl_samples_E10.5_12May_regressed$prediction)
+
+
+#table(fl_samples_E10.5_12May_regressed$sample_group, fl_samples_E10.5_12May_regressed$prediction)
+
+#fl_samples_E10.5_12May_regressed@meta.data <- fl_samples_E10.5_12May_regressed@meta.data %>% 
+  ##mutate(
+    #sex = case_when(
+  #prediction == "Female" ~ "Female", 
+  #prediction == 1 ~ "Female",
+  #prediction == 2 ~"Male",
+  ##prediction == 3 ~ "NA"
+#))
+
+#table(fl_samples_E10.5_12May_regressed$sample_group, fl_samples_E10.5_12May_regressed$sex)
+# Subset cells with NA sex values
+#fl_samples_E10.5_12May_regressed_nosex <- subset(fl_samples_E10.5_12May_regressed, subset = prediction == "NA")
+```
+
+
+
+```{r}
+# Subset cells with Eif2s3y
+#fl_samples_E10.5_12May_regressed_eif2s3y <- subset(fl_samples_E10.5_12May_regressed_nosex, subset = Eif2s3y > 0)
+#fl_samples_E10.5_12May_regressed$sex <- ifelse(fl_samples_E10.5_12May_regressed$cells %in% fl_samples_E10.5_12May_regressed_eif2s3y$cells, "Male", fl_samples_E10.5_12May_regressed$sex)
+
+
+#table(fl_samples_E10.5_12May_regressed$sample_group, fl_samples_E10.5_12May_regressed$sex)
+
+
+
+
+
+#metadata <- fl_samples_E10.5_12May_regressed_xist@meta.data
+#metadata$prediction <- NA
+#metadata$prediction[which(str_detect(metadata$sample_group, "^FL_E10.5"))] <- "Female"
+#metadata <- metadata %>% 
+  #as.data.frame() %>% 
+  #dplyr::select(prediction) 
+#fl_samples_E10.5_12May_regressed_xist@meta.data <- metadata
+
+#metadata <- left_join(fl_samples_E10.5_12May_regressed@meta.data, fl_samples_E10.5_12May_regressed_xist@meta.data, by = "prediction")
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+# DO NOT RUN WITH THIS LIST. CONTAINS GENES NOT IN THE COUNTS MATRIX
+```{r, eval=FALSE}
+# Make a vector of sex genes                           
+#sex_genes <- list(c("Ribc1", 
+"Gab3",   
+"Fundc1", 
+ "Sytl4",  
+"Syap1",  
+"Alg13",  
+"Dusp21", 
+"Nlgn4l", 
+"Cltrn" , 
+"Gemin8", 
+"Srpx2",  
+"Car5b",  
+"Morf4l2",
+"Rab9",   
+"Med14",  
+"Pir",    
+"Ikbkg",  
+"Ofd1",   
+"Naa10",  
+"Smc1a",  
+"Kdm5c",  
+"Usp9x",  
+"Pudp",   
+"Zfx",    
+"Xist",   
+"Kdm6a",  
+"Uba1",   
+"Tbl1x",  
+"Sh3bgrl",
+"Rps4x",  
+"Renbp",  
+"Rbbp7",  
+"Prkx",   
+ "Plxnb3", 
+"Cdk16",  
+"Tsix",
+"Arhgap4",
+"Brs3",
+"S100g",
+"Chm",
+"Clcn4",
+"Ddx3x",
+"Eif1ax",
+"Gpm6b",
+"Grpr",
+"Hcfc1",
+"L1cam",
+"Maoa",
+"Nap1l3",
+"Gpr143",
+"Cdk16",
+"Plxnb3",
+"Prkx",
+"Rbbp7",
+"Renbp",
+"Rps4x",
+"Sh3bgrl",
+"Tbl1x",
+"Uba1",
+"Kdm6a",
+"Zfx",
+"Pudp",
+"Usp9x",
+"Smc1a",
+"Naa10",
+"Ofd1",
+"Ikbkg",
+"Pir",
+"Med14",
+"Rab9",
+"Morf4l2",
+"Car5b",
+"Srpx2",
+"Gemin8",
+"Cltrn",
+"Dusp21",
+"Alg13",
+"Syap1",
+"Sytl4",
+"Fundc1",
+"Gab3",
+"Ribc1",
+"Dazl",    
+"Dazl",    
+"Hsfy2",   
+"Tbl1x",   
+"Tgif2lx1",
+"Tgif2lx2",
+"Hsfy2",   
+"Pcdh11x", 
+"Nlgn4l",  
+"Tmsb4x",  
+"Eif1ax",  
+"Ddx3y",   
+"Usp9y",   
+"Kdm5d",   
+"Zfa-ps",  
+"Uty",     
+"Sry",     
+"Rps4x",   
+"Prkx",    
+"Dazl",    
+"Amelx",   
+"Eif2s3y",
+"Eif2s3x"))
+
+```
+
+
+
+
+```{r}
+#sex_genes <- list(c("Med14", "Usp9x", "Ddx3x", "Maoa","Fundc1","Kdm6a","Uba1","Cdk16","Plxnb3","L1cam","Arhgap4", "Naa10","Renbp","Hcfc1","Ikbkg","Gab3","Tbl1x","Prkx","Zfx","Eif2s3x", "Tsix","Xist","Sh3bgrl", "Chm","Pcdh11x", "Nap1l3",  "Srpx2", "Sytl4","Morf4l2", "Alg13","Ribc1","Smc1a","Kdm5c","Gpr143",  "Eif1ax",  "Rbbp7",   "Syap1",   "S100g", "Grpr","Car5b","Pir","Gemin8","Gpm6b","Ofd1","Rab9","Tmsb4x",  "Amelx","Clcn4","Dazl","Kdm5d","Eif2s3y", "Uty", "Ddx3y", "Usp9y")) 
+
+# Incomplete list
+#sex_genes <- c("Med14", "Usp9x", "Ddx3x",  "Maoa", "Fundc1", "Kdm6a", "Uba1", "Cdk16", "L1cam", "Arhgap4", "Naa10", "Renbp","Hcfc1","Ikbkg", "Gab3" , "Tbl1x" ,  "Prkx", "Zfx","Eif2s3x", "Tsix","Xist", # "Sh3bgrl", "Chm","Nap1l3" , "Sytl4", "Morf4l2", "Alg13","Ribc1","Smc1a","Kdm5c","Eif1ax" , "Rbbp7" ,  "Syap1", "S100g", "Pir","Gemin8", "Gpm6b","Ofd1", "Rab9", "Tmsb4x", #"Clcn4","Dazl","Kdm5d","Eif2s3y", "Uty","Ddx3y",  "Car5b")
+```
+
+
+
+
+
+
+# Filter out all sex genes
+```{r, eval=FALSE}
+#DefaultAssay(fl_samples_E10.5_12May_regressed) <- "RNA"
+# code from the internet on how to remove specific genes before downstream analysis (Satijalab, Github)
+#counts <- GetAssayData(fl_samples_E10.5_12May_regressed, assay = "RNA")
+#counts <- counts[-(which(rownames(counts) %in% sex_genes)),]
+#fl_samples_E10.5_12May_regressed <- subset(fl_samples_E10.5_12May_regressed, features = rownames(counts))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Subset clusters of interest for pseudobulk DEG analysis
+
+```{r, eval=FALSE}
+fl_samples_E14.5_12May_named_DEG <- subset(fl_samples_E14.5_12May_named_DEG, idents =c("Megakaryocyte", "Erythroblast"))
+```
+
+
+```{r}
+# SCTransform the subset object
+fl_samples_E14.5_12May_named_DEG <- SCTransform(fl_samples_E14.5_12May_named_DEG,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+
+
+
+## Reannotate clusters in FL_E14.5 samples
+```{r}
+# Fetal liver
+fl_samples_E14.5_12May_named_Ery_specific <-  RenameIdents(object = fl_samples_E14.5_12May_named_Ery,
+                                      "Ery2a" = "E14.5_Ery2a",
+                                      "Ery1b" = "E14.5_Ery1b",
+                                      "Ery1a" = "E14.5_Ery1a",
+                                      "Erythb1" = "E14.5_Erythb1",
+                                      "Ery2b" = "E14.5_Ery2b",
+                                      "Erythb2" = "E14.5_Erythb2",
+                                      "Ery3" = "E14.5_Ery3",
+                                      "Ery4" = "E14.5_Ery4")
+
+fl_samples_E14.5_12May_named_Ery_specific$cluster_ident <- Idents(fl_samples_E14.5_12May_named_Ery_specific)
+
+```
+
+
+
+```{r}
+# SCTransform the subset Ery object
+fl_samples_E14.5_12May_named_Ery_specific <- SCTransform(fl_samples_E14.5_12May_named_Ery_specific,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+
+
+
+
+```{r}
+DimPlot(object = fl_samples_E14.5_12May_named,
+        reduction = "umap",
+        cols = clust_cols,
+        label = TRUE,
+        label.size = 6,
+        pt.size = 1.5) 
+```
+
+
+
+# DIFFERENTIAL GENE EXPRESSION BETWEEN SUBPOPULATIONS OF THE SAME CELL TYPE (IDENTITY)
+
+
+```{r}
+# Make directory for DEG analysis
+dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/data/FL_E14.5/")
+dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/results/FL_E14.5/")
+dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/")
+```
+
+
+```{r}
+Ery1a_vs_MEP_E14.5 <- FindMarkers(fl_samples_E14.5_12May_named, 
+                                  ident.1 = "Ery1a",
+                                  ident.2 = "MEP",
+                                  assay = "SCT",
+                                  min.pct = 0.3)
+
+Ery1a_vs_MEP_E14.5
+```
+
+
+```{r}
+# Arrange adjusted p-values
+Ery1a_vs_MEP_E14.5 <- Ery1a_vs_MEP_E14.5 %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(Ery1a_vs_MEP_E14.5))
+
+# What is the total number of genes in the DE analysis?
+nrow(Ery1a_vs_MEP_E14.5)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+Ery1a_vs_MEP_E14.5_signif <- Ery1a_vs_MEP_E14.5 %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(Ery1a_vs_MEP_E14.5_signif)
+
+# How many genes are upregulated?
+(Ery1a_vs_MEP_E14.5_upreg <- Ery1a_vs_MEP_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(Ery1a_vs_MEP_E14.5_upreg)
+
+# How many genes are down-regulated?
+(Ery1a_vs_MEP_E14.5_downreg <- Ery1a_vs_MEP_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(Ery1a_vs_MEP_E14.5_downreg)
+```
+
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(Ery1a_vs_MEP_E14.5,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1a_vs_MEP_E14.5.rds")))
+
+# Save significant DEGs
+saveRDS(Ery1a_vs_MEP_E14.5_signif,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1a_vs_MEP_E14.5_signif.rds")))
+
+# Save upregulated genes
+saveRDS(Ery1a_vs_MEP_E14.5_upreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1a_vs_MEP_E14.5_upreg.rds")))
+
+# Save downregulated genes
+saveRDS(Ery1a_vs_MEP_E14.5_downreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1a_vs_MEP_E14.5_downreg.rds")))
+```
+
+
+
+```{r}
+EnhancedVolcano(Ery1a_vs_MEP_E14.5_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(Ery1a_vs_MEP_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(Ery1a_vs_MEP_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(Ery1a_vs_MEP_E14.5_signif),
+                pCutoff = 10e-10, 
+                FCcutoff = 0.5,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E14.5 Ery1a vs MEP", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("Ery1a.MEP_volcano_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
+       width = 15, height = 15)
+```
+
+
+# GO ANALYSIS OF DIFFERENTIALLY EXPRESSED ERYTHROID AND MEGAKARYOCYTE GENES. I did pathway enrichment instead
+
+```{r}
+# Load libraries
+library(clusterProfiler)
+library(msigdbr)
+library(GOplot)
+```
+
+
+
+```{r}
+# Extract databases of interest
+msigdbr_df1 <- msigdbr(species = "mouse", category = "C2", subcategory = "CP:REACTOME")
+msigdbr_df2 <- msigdbr(species = "mouse", category = "C2", subcategory = "CP:KEGG")
+msigdbr_df3 <- msigdbr(species = "mouse", category = "C5", subcategory = "GO:BP")
+msigdbr_df4 <- msigdbr(species = "mouse", category = "C5", subcategory = "GO:CC")
+msigdbr_df5 <- msigdbr(species = "mouse", category = "C5", subcategory = "GO:MF")
+msigdbr_df6 <- msigdbr(species = "mouse", category = "H")
+
+
+# Extract columns of interest(gene set name and gene symbol)
+# Reactome Pathways
+msigdbr_t2g1 <- msigdbr_df1 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+# KEGG Pathways
+msigdbr_t2g2 <- msigdbr_df2 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+# Biological Processes
+msigdbr_t2g3 <- msigdbr_df3 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+```
+
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Ery1a_vs_MEP_E14.5_upreg_Reactome <- enricher(gene = Ery1a_vs_MEP_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+Ery1a_vs_MEP_E14.5_upreg_Reactome@result$Description <- Ery1a_vs_MEP_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Ery1a_vs_MEP_E14.5_upreg_BP <- enricher(gene = Ery1a_vs_MEP_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+Ery1a_vs_MEP_E14.5_upreg_BP@result$Description <- Ery1a_vs_MEP_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1a_vs_MEP_E14.5_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Ery1a_vs_MEP_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "REACTOME sig.terms - upreg. genes in E14.5 Ery1a vs MEP", label_format = 30)
+a
+#dev.off()
+
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1a_vs_MEP_E14.5_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Ery1a_vs_MEP_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig.terms - upreg. genes in E14.5 Ery1a vs MEP", label_format = 30)
+a
+#dev.off()
+```
+
+
+```{r}
+# ENRICHER
+# Down_regulated genes
+Ery1a_vs_MEP_E14.5_downreg_Reactome <- enricher(gene = Ery1a_vs_MEP_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1)
+Ery1a_vs_MEP_E14.5_downreg_Reactome@result$Description <- Ery1a_vs_MEP_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+
+Ery1a_vs_MEP_E14.5_downreg_BP <- enricher(gene = Ery1a_vs_MEP_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3)
+Ery1a_vs_MEP_E14.5_downreg_BP@result$Description <- Ery1a_vs_MEP_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for down-regulated genes (top 10 significant terms)
+
+# Plot down-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1a_vs_MEP_E14.5__downreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Ery1a_vs_MEP_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "REACTOME sig.terms - downreg. genes in E14.5 Ery1a vs MEP", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1a_vs_MEP_E14.5__downreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Ery1a_vs_MEP_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig.terms-downreg. genes in E14.5 Ery1a vs MEP", label_format = 30)
+a
+#dev.off()
+```
+
+
+
+```{r}
+Ery1b_vs_MEP_E14.5 <- FindMarkers(fl_samples_E14.5_12May_named, 
+                                  ident.1 = "Ery1b",
+                                  ident.2 = "MEP",
+                                  assay = "SCT",
+                                  min.pct = 0.3)
+
+Ery1b_vs_MEP_E14.5
+```
+
+
+
+```{r}
+# Arrange adjusted p-values
+Ery1b_vs_MEP_E14.5 <- Ery1b_vs_MEP_E14.5 %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(Ery1b_vs_MEP_E14.5))
+
+# What is the total number of genes in the DE analysis?
+nrow(Ery1b_vs_MEP_E14.5)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+Ery1b_vs_MEP_E14.5_signif <- Ery1b_vs_MEP_E14.5 %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(Ery1b_vs_MEP_E14.5_signif)
+
+# How many genes are upregulated?
+(Ery1b_vs_MEP_E14.5_upreg <- Ery1b_vs_MEP_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(Ery1b_vs_MEP_E14.5_upreg)
+
+# How many genes are down-regulated?
+(Ery1b_vs_MEP_E14.5_downreg <- Ery1b_vs_MEP_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(Ery1b_vs_MEP_E14.5_downreg)
+```
+
+
+
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(Ery1b_vs_MEP_E14.5,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_MEP_E14.5.rds")))
+
+# Save significant DEGs
+saveRDS(Ery1b_vs_MEP_E14.5_signif,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_MEP_E14.5_signif.rds")))
+
+# Save upregulated genes
+saveRDS(Ery1b_vs_MEP_E14.5_upreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_MEP_E14.5_upreg.rds")))
+
+# Save downregulated genes
+saveRDS(Ery1b_vs_MEP_E14.5_downreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_MEP_E14.5_downreg.rds")))
+```
+
+
+
+```{r}
+EnhancedVolcano(Ery1b_vs_MEP_E14.5_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(Ery1b_vs_MEP_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(Ery1b_vs_MEP_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(Ery1b_vs_MEP_E14.5_signif),
+                pCutoff = 10e-10, 
+                FCcutoff = 0.5,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E14.5 Ery1b vs MEP", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("Ery1b.MEP_volcano_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
+       width = 15, height = 15)
+```
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Ery1b_vs_MEP_E14.5_upreg_Reactome <- enricher(gene = Ery1b_vs_MEP_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+Ery1b_vs_MEP_E14.5_upreg_Reactome@result$Description <- Ery1b_vs_MEP_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Ery1b_vs_MEP_E14.5_upreg_BP <- enricher(gene = Ery1b_vs_MEP_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+Ery1b_vs_MEP_E14.5_upreg_BP@result$Description <- Ery1b_vs_MEP_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b_vs_MEP_E14.5_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Ery1b_vs_MEP_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "REACTOME sig.terms - upreg. genes in E14.5 Ery1b vs MEP", label_format = 30)
+a
+#dev.off()
+
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b_vs_MEP_E14.5_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Ery1b_vs_MEP_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig.terms - upreg. genes in E14.5 Ery1b vs MEP", label_format = 30)
+a
+#dev.off()
+```
+
+
+
+```{r}
+# ENRICHER
+# Down_regulated genes
+Ery1b_vs_MEP_E14.5_downreg_Reactome <- enricher(gene = Ery1b_vs_MEP_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1)
+Ery1b_vs_MEP_E14.5_downreg_Reactome@result$Description <- Ery1b_vs_MEP_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+
+Ery1b_vs_MEP_E14.5_downreg_BP <- enricher(gene = Ery1b_vs_MEP_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3)
+Ery1b_vs_MEP_E14.5_downreg_BP@result$Description <- Ery1b_vs_MEP_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for down-regulated genes (top 10 significant terms)
+
+# Plot down-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b_vs_MEP_E14.5_downreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Ery1b_vs_MEP_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "REACTOME sig.terms - downreg. genes in E14.5 Ery1b vs MEP", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b_vs_MEP_E14.5_downreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Ery1b_vs_MEP_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig.terms-downreg. genes in E14.5 Ery1b vs MEP", label_format = 30)
+a
+#dev.off()
+```
+
+
+
+```{r}
+Ery1b_vs_Ery1a_E14.5 <- FindMarkers(fl_samples_E14.5_12May_named, 
+                                  ident.1 = "Ery1b",
+                                  ident.2 = "Ery1a",
+                                  assay = "SCT",
+                                  min.pct = 0.3)
+
+Ery1b_vs_Ery1a_E14.5
+```
+
+
+
+```{r}
+# Arrange adjusted p-values
+Ery1b_vs_Ery1a_E14.5 <- Ery1b_vs_Ery1a_E14.5 %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(Ery1b_vs_Ery1a_E14.5))
+
+# What is the total number of genes in the DE analysis?
+nrow(Ery1b_vs_Ery1a_E14.5)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+Ery1b_vs_Ery1a_E14.5_signif <- Ery1b_vs_Ery1a_E14.5 %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(Ery1b_vs_Ery1a_E14.5_signif)
+
+# How many genes are upregulated?
+(Ery1b_vs_Ery1a_E14.5_upreg <- Ery1b_vs_Ery1a_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(Ery1b_vs_Ery1a_E14.5_upreg)
+
+# How many genes are down-regulated?
+(Ery1b_vs_Ery1a_E14.5_downreg <- Ery1b_vs_Ery1a_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(Ery1b_vs_Ery1a_E14.5_downreg)
+```
+
+
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(Ery1b_vs_Ery1a_E14.5,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_Ery1a_E14.5.rds")))
+
+# Save significant DEGs
+saveRDS(Ery1b_vs_Ery1a_E14.5_signif,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_Ery1a_E14.5.rds")))
+
+# Save upregulated genes
+saveRDS(Ery1b_vs_Ery1a_E14.5_upreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_Ery1a_E14.5.rds")))
+
+# Save downregulated genes
+saveRDS(Ery1b_vs_Ery1a_E14.5_downreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_Ery1a_E14.5_downreg.rds")))
+```
+
+
+```{r}
+EnhancedVolcano(Ery1b_vs_Ery1a_E14.5_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(Ery1b_vs_Ery1a_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(Ery1b_vs_Ery1a_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(Ery1b_vs_Ery1a_E14.5_signif),
+                pCutoff = 10e-10, 
+                FCcutoff = 0.5,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E14.5 Ery1b vs Ery1a", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("Ery1b.Ery1a_volcano_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
+       width = 15, height = 15)
+```
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Ery1b_vs_Ery1a_E14.5_upreg_Reactome <- enricher(gene = Ery1b_vs_Ery1a_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+Ery1b_vs_Ery1a_E14.5_upreg_Reactome@result$Description <- Ery1b_vs_Ery1a_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Ery1b_vs_Ery1a_E14.5_upreg_BP <- enricher(gene = Ery1b_vs_Ery1a_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+Ery1b_vs_Ery1a_E14.5_upreg_BP@result$Description <- Ery1b_vs_Ery1a_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b_vs_Ery1a_E14.5_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Ery1b_vs_Ery1a_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "REACTOME sig.terms - upreg. genes in E14.5 Ery1b vs Ery1a", label_format = 30)
+a
+#dev.off()
+
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b_vs_Ery1a_E14.5_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Ery1b_vs_Ery1a_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig.terms - upreg. genes in E14.5 Ery1b vs Ery1a", label_format = 30)
+a
+#dev.off()
+```
+
+
+```{r}
+# ENRICHER
+# Down_regulated genes
+Ery1b_vs_Ery1a_E14.5_downreg_Reactome <- enricher(gene = Ery1b_vs_Ery1a_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1) 
+Ery1b_vs_Ery1a_E14.5_downreg_Reactome@result$Description <- Ery1b_vs_Ery1a_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Ery1b_vs_Ery1a_E14.5_downreg_BP <- enricher(gene = Ery1b_vs_Ery1a_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3) 
+Ery1b_vs_Ery1a_E14.5_downreg_BP@result$Description <- Ery1b_vs_Ery1a_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for down-regulated genes (top 10 significant terms)
+
+# Plot down-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b_vs_Ery1a_E14.5_downreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Ery1b_vs_Ery1a_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "REACTOME sig.terms - downreg. genes in E14.5 Ery1b vs Ery1a", label_format = 30)
+a
+#dev.off()
+
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b_vs_Ery1a_E14.5_downreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Ery1b_vs_Ery1a_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig.terms - downreg. genes in E14.5 Ery1b vs Ery1a", label_format = 30)
+a
+#dev.off()
+```
+
+
+```{r}
+Erythb3_vs_Erythb1_E14.5 <- FindMarkers(fl_samples_E14.5_12May_named, 
+                                  ident.1 = "Erythb3",
+                                  ident.2 = "Erythb1",
+                                  assay = "SCT",
+                                  min.pct = 0.3)
+
+Erythb3_vs_Erythb1_E14.5
+```
+
+
+```{r}
+# Arrange adjusted p-values
+Erythb3_vs_Erythb1_E14.5 <- Erythb3_vs_Erythb1_E14.5 %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(Erythb3_vs_Erythb1_E14.5))
+
+# What is the total number of genes in the DE analysis?
+nrow(Erythb3_vs_Erythb1_E14.5)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+Erythb3_vs_Erythb1_E14.5_signif <- Erythb3_vs_Erythb1_E14.5 %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(Erythb3_vs_Erythb1_E14.5_signif)
+
+# How many genes are upregulated?
+(Erythb3_vs_Erythb1_E14.5_upreg <- Erythb3_vs_Erythb1_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(Erythb3_vs_Erythb1_E14.5_upreg)
+
+# How many genes are down-regulated?
+(Erythb3_vs_Erythb1_E14.5_downreg <- Erythb3_vs_Erythb1_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(Erythb3_vs_Erythb1_E14.5_downreg)
+```
+
+
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(Erythb3_vs_Erythb1_E14.5,
+          paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb1_E14.5.rds")))
+
+# Save significant DEGs
+saveRDS(Erythb3_vs_Erythb1_E14.5_signif,
+          paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb1_E14.5_signif.rds")))
+
+# Save upregulated genes
+saveRDS(Erythb3_vs_Erythb1_E14.5_upreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb1_E14.5_upreg.rds")))
+
+# Save downregulated genes
+saveRDS(Erythb3_vs_Erythb1_E14.5_downreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb1_E14.5_downreg.rds")))
+```
+
+
+
+
+```{r}
+EnhancedVolcano(Erythb3_vs_Erythb1_E14.5_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(Erythb3_vs_Erythb1_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(Erythb3_vs_Erythb1_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(Erythb3_vs_Erythb1_E14.5_signif),
+                pCutoff = 10e-10, 
+                FCcutoff = 0.5,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E14.5 Erythb3 vs Erythb1", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("Erythb3.Erythb1_volcano_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
+       width = 15, height = 15)
+```
+
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Erythb3_vs_Erythb1_E14.5_upreg_Reactome <- enricher(gene = Erythb3_vs_Erythb1_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb3_vs_Erythb1_E14.5_upreg_Reactome@result$Description <- Erythb3_vs_Erythb1_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Erythb3_vs_Erythb1_E14.5_upreg_BP <- enricher(gene = Erythb3_vs_Erythb1_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb3_vs_Erythb1_E14.5_upreg_BP@result$Description <- Erythb3_vs_Erythb1_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb1_E14.5_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb1_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "Reactome sig.terms - upreg. genes in E14.5 Erythb3_vs_Erythb1", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb1_E14.5_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb1_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E14.5 Erythb3_vs_Erythb1", label_format = 30)
+a
+#dev.off()
+```
+
+```{r}
+# ENRICHER
+# Down_regulated genes
+Erythb3_vs_Erythb1_E14.5_downreg_Reactome <- enricher(gene = Erythb3_vs_Erythb1_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb3_vs_Erythb1_E14.5_downreg_Reactome@result$Description <- Erythb3_vs_Erythb1_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Erythb3_vs_Erythb1_E14.5_downreg_BP <- enricher(gene = Erythb3_vs_Erythb1_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb3_vs_Erythb1_E14.5_downreg_BP@result$Description <- Erythb3_vs_Erythb1_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for down-regulated genes (significant terms)
+
+# Plot down-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb1_E14.5_downreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb1_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "Reactome sig. terms - downreg. genes in  E14.5 Erythb3_vs_Erythb1", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb1_E14.5_downreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb1_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig. terms - downreg. genes in  E14.5 Erythb3_vs_Erythb1", label_format = 30)
+a
+#dev.off()
+```
+
+
+
+```{r}
+Erythb3_vs_Erythb2_E14.5 <- FindMarkers(fl_samples_E14.5_12May_named, 
+                                  ident.1 = "Erythb3",
+                                  ident.2 = "Erythb2",
+                                  assay = "SCT",
+                                  min.pct = 0.3)
+
+Erythb3_vs_Erythb2_E14.5
+```
+
+
+```{r}
+# Arrange adjusted p-values
+Erythb3_vs_Erythb2_E14.5 <- Erythb3_vs_Erythb2_E14.5 %>% 
+  dplyr::arrange("p_val_adj") %>% 
+  dplyr::mutate(gene = rownames(Erythb3_vs_Erythb2_E14.5))
+
+# What is the total number of genes in the DE analysis?
+nrow(Erythb3_vs_Erythb2_E14.5)
+
+# How many genes have significant adjusted p-values,  that is differentially expressed?
+Erythb3_vs_Erythb2_E14.5_signif <- Erythb3_vs_Erythb2_E14.5 %>% 
+                              dplyr::filter(p_val_adj < 0.05)
+nrow(Erythb3_vs_Erythb2_E14.5_signif)
+
+# How many genes are upregulated?
+(Erythb3_vs_Erythb2_E14.5_upreg <- Erythb3_vs_Erythb2_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC > 0))
+nrow(Erythb3_vs_Erythb2_E14.5_upreg)
+
+# How many genes are down-regulated?
+(Erythb3_vs_Erythb2_E14.5_downreg <- Erythb3_vs_Erythb2_E14.5_signif %>% 
+                              dplyr::filter(avg_log2FC < 0))
+nrow(Erythb3_vs_Erythb2_E14.5_downreg)
+```
+
+
+```{r}
+# Save the DEGs (all genes, not just the significant ones)
+saveRDS(Erythb3_vs_Erythb2_E14.5,
+          paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb2_E14.5.rds")))
+
+# Save significant DEGs
+saveRDS(Erythb3_vs_Erythb2_E14.5_signif,
+          paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb2_E14.5.rds")))
+
+# Save upregulated genes
+saveRDS(Erythb3_vs_Erythb2_E14.5_upreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb2_E14.5_upreg.rds")))
+
+# Save downregulated genes
+saveRDS(Erythb3_vs_Erythb2_E14.5_downreg,
+          paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb2_E14.5_downreg.rds")))
+```
+
+
+
+
+```{r}
+EnhancedVolcano(Erythb3_vs_Erythb2_E14.5_signif, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(Erythb3_vs_Erythb2_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(Erythb3_vs_Erythb2_E14.5_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(Erythb3_vs_Erythb2_E14.5_signif),
+                pCutoff = 10e-10, 
+                FCcutoff = 0.5,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "Volcano plot of E14.5 Erythb3 vs Erythb2", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+ggsave("Erythb3.Erythb2_volcano_fl_samples_E14.5_12May_named.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
+       width = 15, height = 15)
+```
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Erythb3_vs_Erythb2_E14.5_upreg_Reactome <- enricher(gene = Erythb3_vs_Erythb2_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb3_vs_Erythb2_E14.5_upreg_Reactome@result$Description <- Erythb3_vs_Erythb2_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Erythb3_vs_Erythb2_E14.5_upreg_BP <- enricher(gene = Erythb3_vs_Erythb2_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb3_vs_Erythb2_E14.5_upreg_BP@result$Description <- Erythb3_vs_Erythb2_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb2_E14.5_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb2_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "Reactome sig.terms - upreg. genes in E14.5 Erythb3_vs_Erythb2", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb2_E14.5_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb2_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E14.5 Erythb3_vs_Erythb2", label_format = 30)
+a
+#dev.off()
+```
+
+
+```{r}
+# ENRICHER
+# Down_regulated genes
+Erythb3_vs_Erythb2_E14.5_downreg_Reactome <- enricher(gene = Erythb3_vs_Erythb2_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb3_vs_Erythb2_E14.5_downreg_Reactome@result$Description <- Erythb3_vs_Erythb2_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Erythb3_vs_Erythb2_E14.5_downreg_BP <- enricher(gene = Erythb3_vs_Erythb2_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb3_vs_Erythb2_E14.5_downreg_BP@result$Description <- Erythb3_vs_Erythb2_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for down-regulated genes (significant terms)
+
+# Plot down-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb2_E14.5_downreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb2_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "Reactome sig. terms - downreg. genes in  E14.5 Erythb3_vs_Erythb2", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb2_E14.5_downreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb2_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig. terms - downreg. genes in  E14.5 Erythb3_vs_Erythb2", label_format = 30)
+a
+#dev.off()
+```
+
+
+
+
+
+
+#GO ANALYSIS OF DIFFERENTIALLY EXPRESSED ERYTHROID GENES. I did pathway enrichment instead. 
+# PATHWAY ENRICHMENT ANALYSIS with MSIGDB DATABASE AND ENRICHER PACKAGE
+
+```{r}
+# Load libraries
+library(clusterProfiler)
+library(msigdbr)
+library(GOplot)
+```
+
+
+
+# Read in up- and down-regulated genes in E14.5 Erythroid progenitors
+
+```{r}
+# Read in upregulated genes
+Ery1b_vs_Ery1a_E14.5_upreg <- readRDS(paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_Ery1a_E14.5_upreg.rds")))
+Erythb2_vs_Erythb1_E14.5_upreg <- readRDS(paste0(here("DE_analysis/results/FL_E14.5", "Erythb2_vs_Erythb1_E14.5_upreg.rds")))
+Erythb3_vs_Erythb2_E14.5_upreg <- readRDS(paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb2_E14.5_upreg.rds")))
+Erythb3_vs_Erythb1_E14.5_upreg <- readRDS(paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb1_E14.5_upreg.rds")))
+
+
+# Read in downregulated genes
+Ery1b_vs_Ery1a_E14.5_downreg <- readRDS(paste0(here("DE_analysis/results/FL_E14.5", "Ery1b_vs_Ery1a_E14.5_downreg.rds")))
+Erythb2_vs_Erythb1_E14.5_downreg <- readRDS(paste0(here("DE_analysis/results/FL_E14.5", "Erythb2_vs_Erythb1_E14.5_downreg.rds")))
+Erythb3_vs_Erythb2_E14.5_downreg <- readRDS(paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb2_E14.5_downreg.rds")))
+Erythb3_vs_Erythb1_E14.5_downreg <- readRDS(paste0(here("DE_analysis/results/FL_E14.5", "Erythb3_vs_Erythb1_E14.5_downreg.rds")))
+
+```
+
+
+
+```{r}
+# Extract databases of interest
+msigdbr_df1 <- msigdbr(species = "mouse", category = "C2", subcategory = "CP:REACTOME")
+msigdbr_df2 <- msigdbr(species = "mouse", category = "C2", subcategory = "CP:KEGG")
+msigdbr_df3 <- msigdbr(species = "mouse", category = "C5", subcategory = "GO:BP")
+msigdbr_df4 <- msigdbr(species = "mouse", category = "C5", subcategory = "GO:CC")
+msigdbr_df5 <- msigdbr(species = "mouse", category = "C5", subcategory = "GO:MF")
+msigdbr_df6 <- msigdbr(species = "mouse", category = "H")
+
+
+# Extract columns of interest(gene set name and gene symbol)
+# Reactome Pathways
+msigdbr_t2g1 <- msigdbr_df1 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+# KEGG Pathways
+msigdbr_t2g2 <- msigdbr_df2 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+# Biological Processes
+msigdbr_t2g3 <- msigdbr_df3 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+```
+
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+EPa_vs_EPb_E14.5_upreg_Reactome <- enricher(gene = EPa_vs_EPb_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+EPa_vs_EPb_E14.5_upreg_Reactome@result$Description <- EPa_vs_EPb_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+#EryP2_vs_EryP1_E10.5_upreg_KEGG <- enricher(gene = EryP2_vs_EryP1_E10.5_upreg$gene, TERM2GENE = msigdbr_t2g2)
+#EryP2_vs_EryP1_E10.5_upreg_KEGG@result$Description <- EryP2_vs_EryP1_E10.5_upreg_KEGG@result$Description %>% str_replace_all("KEGG_", "")
+
+EPa_vs_EPb_E14.5_upreg_BP <- enricher(gene = EPa_vs_EPb_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+EPa_vs_EPb_E14.5_upreg_BP@result$Description <- EPa_vs_EPb_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+
+
+# Bind all significant terms from the databases
+#Mk_downgene_group1_sig_pthwy <- rbind(Mk_downgene_group1_Reactome, Mk_downgene_group1_KEGG, Mk_downgene_group1_BP)
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1a vs Ery1b_E14.5_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(EPa_vs_EPb_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "REACTOME sig. terms- upreg. genes in E14.5 Ery1b vs Ery1a", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1a vs Ery1b_E14.5_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(EPa_vs_EPb_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig. terms- upreg. genes in E14.5 Ery1b vs Ery1a", label_format = 30)
+a
+#dir.create("DE_analysis/results/FL_E14.5/EPa_vs_EPb")
+#dev.off()
+```
+
+
+
+```{r}
+# ENRICHER
+# Down_regulated genes
+EPa_vs_EPb_E14.5_downreg_Reactome <- enricher(gene = EPa_vs_EPb_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1)
+EPa_vs_EPb_E14.5_downreg_Reactome@result$Description <- EPa_vs_EPb_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+EPa_vs_EPb_E14.5_downreg_BP <- enricher(gene = EPa_vs_EPb_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3)
+EPa_vs_EPb_E14.5_downreg_BP@result$Description <- EPa_vs_EPb_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for down-regulated genes (top 10 significant terms)
+
+# Plot down-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Ery1b vs Ery1a_E14.5_downreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(EPa_vs_EPb_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "REACTOME sig. terms - downreg. genes in E14.5 Ery1b vs Ery1a", label_format = 30)
+a
+#dev.off()
+
+
+a <- barplot(EPa_vs_EPb_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 10, font.size = 14, title = "BP sig. terms - downreg. genes in E14.5 Ery1b vs Ery1a", label_format = 30)
+a
+```
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Erythb2_vs_Erythb1_E14.5_upreg_Reactome <- enricher(gene = Erythb2_vs_Erythb1_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb2_vs_Erythb1_E14.5_upreg_Reactome@result$Description <- Erythb2_vs_Erythb1_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Erythb2_vs_Erythb1_E14.5_upreg_BP <- enricher(gene = Erythb2_vs_Erythb1_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb2_vs_Erythb1_E14.5_upreg_BP@result$Description <- Erythb2_vs_Erythb1_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb2 vs Erythb1_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb2_vs_Erythb1_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "REACTOME sig. terms - upreg. genes in E14.5 Erythb2 vs Erythb1", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb2 vs Erythb1_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb2_vs_Erythb1_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "BP sig. terms - upreg. genes in E14.5 Erythb2 vs Erythb1", label_format = 30)
+a
+#dev.off()
+```
+
+
+
+```{r}
+# ENRICHER
+# Down_regulated genes
+Erythb2_vs_Erythb1_E14.5_downreg_Reactome <- enricher(gene = Erythb2_vs_Erythb1_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb2_vs_Erythb1_E14.5_downreg_Reactome@result$Description <- Erythb2_vs_Erythb1_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Erythb2_vs_Erythb1_E14.5_downreg_BP <- enricher(gene = Erythb2_vs_Erythb1_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb2_vs_Erythb1_E14.5_downreg_BP@result$Description <- Erythb2_vs_Erythb1_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#a <- barplot(Erythb2_vs_Erythb1_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 20, font.size = 9, title = "REACTOME sig. terms - downreg. genes in E14.5 Erythb2 vs Erythb1", label_format = 30) # No significant reactome pathways
+#a
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb2 vs Erythb1_downreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb2_vs_Erythb1_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "BP sig. terms - downreg. genes in E14.5 Erythb2 vs Erythb1", label_format = 30)
+a
+#dev.off()
+```
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Erythb3_vs_Erythb2_E14.5_upreg_Reactome <- enricher(gene = Erythb3_vs_Erythb2_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb3_vs_Erythb2_E14.5_upreg_Reactome@result$Description <- Erythb3_vs_Erythb2_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+
+Erythb3_vs_Erythb2_E14.5_upreg_BP <- enricher(gene = Erythb3_vs_Erythb2_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb3_vs_Erythb2_E14.5_upreg_BP@result$Description <- Erythb3_vs_Erythb2_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb2_E14.5_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb2_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "REACTOME sig. terms - upreg. genes in E14.5 Erythb3 vs Erythb2", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb2_E14.5_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb2_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "BP sig. terms - upreg. genes in E14.5 Erythb3 vs Erythb2", label_format = 30)
+a
+#dev.off()
+```
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Erythb3_vs_Erythb2_E14.5_downreg_Reactome <- enricher(gene = Erythb3_vs_Erythb2_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb3_vs_Erythb2_E14.5_downreg_Reactome@result$Description <- Erythb3_vs_Erythb2_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+Erythb3_vs_Erythb2_E14.5_downreg_BP <- enricher(gene = Erythb3_vs_Erythb2_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb3_vs_Erythb2_E14.5_downreg_BP@result$Description <- Erythb3_vs_Erythb2_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb2_E14.5_downreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb2_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "REACTOME sig. terms - downreg. genes in E14.5 Erythb3 vs Erythb2", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb2_E14.5_downreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb2_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "BP sig. terms - downreg. genes in E14.5 Erythb3 vs Erythb2", label_format = 30)
+a
+#dev.off()
+```
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Erythb3_vs_Erythb1_E14.5_upreg_Reactome <- enricher(gene = Erythb3_vs_Erythb1_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb3_vs_Erythb1_E14.5_upreg_Reactome@result$Description <- Erythb3_vs_Erythb1_E14.5_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+
+Erythb3_vs_Erythb1_E14.5_upreg_BP <- enricher(gene = Erythb3_vs_Erythb1_E14.5_upreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb3_vs_Erythb1_E14.5_upreg_BP@result$Description <- Erythb3_vs_Erythb1_E14.5_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 20 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb1_E14.5_upreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb1_E14.5_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "REACTOME sig. terms - upreg. genes in E14.5 Erythb3 vs Erythb1", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb1_E14.5_upreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb1_E14.5_upreg_BP, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "BP sig. terms - upreg. genes in E14.5 Erythb3 vs Erythb1", label_format = 30)
+a
+#dev.off()
+```
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+Erythb3_vs_Erythb1_E14.5_downreg_Reactome <- enricher(gene = Erythb3_vs_Erythb1_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g1) 
+Erythb3_vs_Erythb1_E14.5_downreg_Reactome@result$Description <- Erythb3_vs_Erythb1_E14.5_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+
+Erythb3_vs_Erythb1_E14.5_downreg_BP <- enricher(gene = Erythb3_vs_Erythb1_E14.5_downreg$gene, TERM2GENE = msigdbr_t2g3) 
+Erythb3_vs_Erythb1_E14.5_downreg_BP@result$Description <- Erythb3_vs_Erythb1_E14.5_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 20 significant terms)
+
+# Plot down-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb1_E14.5_downreg_Reactome.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb1_E14.5_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "REACTOME sig. terms - downreg. genes in E14.5 Erythb3 vs Erythb1", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/Erythb3_vs_Erythb1_E14.5_downreg_BP.pdf", width = 15, height = 15)
+a <- barplot(Erythb3_vs_Erythb1_E14.5_downreg_BP, x = "Count", color = "p.adjust", showCategory = 20, font.size = 14, title = "BP sig. terms - downreg. genes in E14.5 Erythb3 vs Erythb1", label_format = 30)
+a
+#dev.off()
+```
+
+
+
+
+## Merge objects after all filtering from different time points. 
+```{r}
+# Merge fetal liver samples for downstream analysis. 
+merged_timepoints <- merge(x = fl_samples_E10.5_12May, y = list(fl_samples_E12.5_12May, fl_samples_E14.5_12May))
+
+#rm(fl_samples_E10.5_12May_named_DEG,fl_samples_E12.5_12May_named_DEG,fl_samples_E14.5_12May_named_DEG)
+```
+
+
+
+```{r}
+# Create metadata dataframe
+metadata <- as.data.frame(merged_timepoints@meta.data)
+
+
+# Get total number of cells in each sample
+(total_cells <- metadata %>% 
+  group_by(sample) %>% 
+  summarize(n = n()))
+
+
+#fl_samples_E10.5_12May_named@meta.data <- metadata
+
+# Visualize the number of cell counts per sample
+merged_timepoints@meta.data %>% 
+  ggplot(aes(x = sample, fill = sample)) +
+  geom_bar() +
+  geom_text(stat = "count", aes(label = ..count.., vjust = -1), size = 11, face = "bold") +
+  theme_classic() +
+  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 80, vjust = 1, hjust = 1)) +
+  theme(axis.text.y = element_text(face = "bold", size = 45)) +
+  #theme(axis.text.x = element_text(angle = 45)) +
+  scale_y_continuous(breaks = seq(0, 5000, by=3000), limits=c(0,5000)) +
+  #theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 30)) +
+  ylab("Total Cells in Sample") +
+  theme(axis.title.y = element_text(size = 50, face = "bold")) +
+  xlab("Sample") +
+  theme(axis.title.x = element_text(size = 50, face = "bold")) +
+  #coord_flip() +
+  #ggtitle("Total number of cells in each sample") +
+  NoLegend() 
+
+ggsave("May12th_final_total_no_of_counts_persample.tif", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
+       width = 17, height = 15, device = "tiff", dpi = 500)
+```
+
+
+```{r}
+#feats <- c("nGene", "nUMI", "mitoRatio")
+#VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = feats, ncol = 3) +
+  #theme(axis.text.x = element_text(face = "bold", size = 12)) +
+  #theme(axis.text.y = element_text(face = "bold", size = 12)) +
+    #NoLegend()
+
+a <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "nGene", ncol = 1) +
+  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 80)) +
+  theme(axis.text.y = element_text(face = "bold", size = 40)) +
+  theme(plot.title = element_text(face = "bold", size = 30)) +
+    NoLegend()
+
+b <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "nUMI", ncol = 1) +
+  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 80)) +
+  theme(axis.text.y = element_text(face = "bold", size = 40)) +
+  theme(plot.title = element_text(face = "bold", size = 30)) +
+    NoLegend()
+
+c <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "mitoRatio", ncol = 1) +
+  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 80)) +
+  theme(axis.text.y = element_text(face = "bold", size = 40)) +
+  theme(plot.title = element_text(face = "bold", size = 30)) +
+    NoLegend()
+
+a|b|c
+
+ggsave("May12th_cell_info_after_filtering.tif", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
+       width = 17, height = 15, device = "tiff")
+
+
+```
+
+
+```{r}
+counts <- fl_samples_E14.5_12May_named_DEG2@assays$SCT@counts
+metadata <- fl_samples_E14.5_12May_named_DEG2@meta.data
+
+fl_samples_E14.5_12May_named_DEG2_sce <- SingleCellExperiment(assays = list(counts = counts),
+                                            colData = metadata)
+```
+
+
+
+# Determine sex of cells at E14.5 using cellXY
+```{r}
+library(cellXY)
+library(speckle)
+library(SingleCellExperiment)
+library(CellBench)
+library(org.Mm.eg.db)
+library(caret)
+library(scRNAseq)
+
+
+counts <- counts(fl_samples_E14.5_12May_named_DEG2_sce)
+ann <- select(org.Mm.eg.db, keys=rownames(fl_samples_E14.5_12May_named_DEG2_sce),
+              columns=c("ENSEMBL","SYMBOL"), keytype="SYMBOL")
+```
+
+
+```{r}
+# How many Ensembl identifiers have an associated gene symbol
+which(is.na(ann$ENSEMBL)) %>% length()
+
+# How many of them are unique
+which(duplicated(ann$ENSEMBL)) %>% length()
+
+# Determine the indices for the non-NA genes
+non_na_idx <- !is.na(ann$ENSEMBL)
+non_duplicated_idx <- which(duplicated(ann$ENSEMBL) == FALSE)
+
+# How many rows does annotations have?
+ann %>% nrow()
+
+# Return only the non-duplicated genes using the indices
+ann <- ann[non_na_idx, ]
+#ann <- ann[non_duplicated_idx, ]
+
+# How many rows does annotations now have?
+ann %>% nrow()
+
+
+m <- match(rownames(counts), ann$SYMBOL)
+rownames(counts) <- ann$SYMBOL[m]
+```
+
+
+
+```{r}
+
+
+sex <- classifySex(counts, genome="Mm")
+
+table(sex$prediction)
+
+prep_sc_lst = preprocess(x=counts,genome="Mm",qc = FALSE)
+
+tcm_ps = prep_sc_lst$tcm.final[sce_s,]
+
+#boxplot(counts["Xist",]~sex$prediction)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# Prepare list of human sex genes to convert to mouse
+female_sex_genes <- c("ARHGAP4", "STS", "ARSD", "ARSL", "AVPRZ", "BRS3", "S100G",
+"CHM", "CLCN4", "DDX3X", "EIF1AX", "EIF2S3", "GPM6B",
+"GRPR", "HCFC1", "L1CAM", "MAOA", "MYCLP1", "NAP1L3",
+"GPR143", "CDK16", "PLXNB3", "PRKX", "RBBP7", "RENBP",
+"RPS4X", "TRAPPCZ", "SH3BGRL", "TBL1X", "UBA1", "KDM6A",
+"XG", "XIST", "ZFX", "PUDP", "PNPLA4", "USP9X", "KDM5C",
+"SMC1A", "NAA10", "OFD1", "IKBKG", "PIR", "INEZ", "INE1",
+"AP1SZ", "GYGZ", "MED14", "RAB9A", "ITMZA", "MORF4L2",
+"CA5B", "SRPX2", "GEMIN8", "CTPSZ", "CLTRN", "NLGN4X",
+"DUSP21", "ALG13", "SYAP1", "SYTL4", "FUNDC1", "GAB3",
+"RIBC1", "FAM9C", "CA5BP1")
+
+library(Orthology.eg.db)
+library(org.Mm.eg.db)
+library(org.Hs.eg.db)
+
+
+
+library("biomaRt")
+   #human <- biomaRt::useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+human <- useEnsembl("ensembl","hsapiens_gene_ensembl", host="https://dec2021.archive.ensembl.org/")
+   #mouse <- biomaRt::useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+   mouse <- useEnsembl("ensembl","mmusculus_gene_ensembl", host="https://dec2021.archive.ensembl.org/")
+
+   genesV2 <- getLDS(attributes = c("hgnc_symbol"), filters = "hgnc_symbol", 
+                 values = female_sex_genes , mart = human, attributesL = c("mgi_symbol"), martL = mouse, uniqueRows=T)
+
+   # Alternative method
+human = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+mouse = useMart("ensembl", dataset = "mmusculus_gene_ensembl") 
+getLDS(attributes = c("hgnc_symbol","chromosome_name", "start_position"), 
+    filters = "hgnc_symbol", values = "XIST", mart = human, 
+    attributesL = c("chromosome_name","start_position"), martL = mouse) 
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+   
+     
+
+female_sex_genes <- as.data.frame(female_sex_genes) %>% 
+  dplyr::mutate("gene" = female_sex_genes) %>% 
+  column_to_rownames(var = "gene")
+
+
+male_sex_genes <- c("AMELY", "DAZ1", "PRKY", "RBMY1A1", "RBMY1HP", "RPS4Y1", "SRY",
+"TSPY1", "UTY", "ZFY","KDM5D", "USP9Y", "DDX3Y", "PRY", "XKRY",
+"BPYZ", "VCY", "CDY1", "EIF1AY", "TMSB4Y","CDYZA", "NLGN4Y",
+"PCDH11Y", "HSFY1", "TGIF2LY", "TBL1Y", "RPS4Y2", "HSFY2",
+"CDYZB", "TXLNGY", "CDY1B", "DAZ3", "DAZZ", "DAZ4")
+
+male_sex_genes <- as.data.frame(male_sex_genes) %>% 
+  dplyr::mutate("gene" = male_sex_genes) %>% 
+  column_to_rownames(var = "gene")
+
+```
+
+
+```{r}
+convert_mouse_to_human <- function(gene_list) { 
+     output = c()
+     mouse_human_genes = read.csv("https://www.informatics.jax.org/downloads/reports/HOM_MouseHumanSequence.rpt",sep="\t")
+
+     for(gene in gene_list) {
+          class_key = (mouse_human_genes %>% filter(Symbol == gene & Common.Organism.Name == "mouse, laboratory"))[['DB.Class.Key']]
+          if( !identical(class_key, integer(0)) ) {
+               human_genes = (mouse_human_genes %>% filter(DB.Class.Key == class_key & Common.Organism.Name=="human"))[,"Symbol"]
+               for(human_gene in human_genes) {
+                    output = rbind(c(gene, human_gene), output)
+               }
+          }
+     }
+     return (output)
+}
+
+convert_human_to_mouse <- function(gene_list) {
+    output = c()
+    mouse_human_genes = read.csv("https://www.informatics.jax.org/downloads/reports/HOM_MouseHumanSequence.rpt",sep="\t")
+
+    for(gene in gene_list) {
+          class_key = (mouse_human_genes %>% filter(Symbol == gene & Common.Organism.Name == "human"))[['DB.Class.Key']]
+          if( !identical(class_key, integer(0)) ) {
+            human_genes = (mouse_human_genes %>% filter(DB.Class.Key == class_key & Common.Organism.Name=="mouse, laboratory"))[,"Symbol"]
+            for(human_gene in human_genes) {
+                output = rbind(c(gene, human_gene), output)
+            }
+          }
+     }
+     return (output)
+}
+
+
+
+female_genes <- convert_human_to_mouse(female_sex_genes)
+male_genes <- convert_human_to_mouse(male_sex_genes)
+```
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+# Get mouse orthologs of human genes
+library(orthogene)
+
+
+female_sex_genes_df <- orthogene::convert_orthologs(gene_df = female_sex_genes,
+                                        gene_input = "rownames", 
+                                        gene_output = "rownames", 
+                                        input_species = "human",
+                                        output_species = "mouse",
+                                        non121_strategy = "drop_both_species")
+
+male_sex_genes_df <- orthogene::convert_orthologs(gene_df = male_sex_genes,
+                                        gene_input = "rownames", 
+                                        gene_output = "rownames", 
+                                        input_species = "human",
+                                        output_species = "mouse",
+                                        non121_strategy = "drop_both_species")
+```
