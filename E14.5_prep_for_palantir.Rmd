@@ -1,0 +1,60 @@
+---
+title: "Clustering annotation of E10.5 Integrated data to regress sex-specific genes"
+author: "Ekpereka Amutaigwe"
+date: "2023-05-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r}
+suppressPackageStartupMessages ({
+library(here)
+library(Seurat)
+library(SeuratData)
+library(SeuratDisk)
+library(Matrix)
+library(umap)
+library(R.utils)
+})
+```
+
+
+
+```{r, eval=FALSE}
+# Read in Fetal liver E14.5 data
+fl_samples_E14.5_12May_named_subset <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/repeated_fl_samples_E14.5_12May_named_subset.rds")
+
+```
+
+
+
+```{r}
+#dir.create("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data")
+#dir.create("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E14.5")
+```
+
+
+
+```{r}
+DefaultAssay(fl_samples_E14.5_12May_named_subset) <- "RNA"
+fl_samples_E14.5_12May_named_subset_palantir <- fl_samples_E14.5_12May_named_subset
+E14.5_metadata <- fl_samples_E14.5_12May_named_subset_palantir@meta.data 
+E14.5_metadata <- E14.5_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident))
+fl_samples_E14.5_12May_named_subset_palantir@meta.data <- E14.5_metadata
+
+write.csv(fl_samples_E14.5_12May_named_subset_palantir@meta.data, "~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E14.5/E14.5_palantir_metadata.csv", quote = F, row.names = F) 
+```
+
+
+```{r}
+DefaultAssay(fl_samples_E14.5_12May_named_subset_palantir) <- "RNA"
+# Convert seurat object to AnnData
+SaveH5Seurat(fl_samples_E14.5_12May_named_subset_palantir, filename = "~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_palantir.h5Seurat")
+Convert("~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_palantir.h5Seurat", dest = "h5ad")
+```
+

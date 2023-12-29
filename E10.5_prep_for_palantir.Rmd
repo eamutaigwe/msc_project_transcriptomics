@@ -1,0 +1,129 @@
+---
+title: "Prepare E10.5 data for trajectory inference"
+author: "Ekpereka Amutaigwe"
+date: "2023-05-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r}
+suppressPackageStartupMessages ({
+library(here)
+library(Seurat)
+library(SeuratData)
+library(SeuratDisk)
+library(Matrix)
+library(umap)
+library(R.utils)
+})
+```
+
+
+
+```{r, eval=FALSE}
+# Read in Fetal liver E10.5 data
+fl_samples_E10.5_12May_named <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named.rds")
+fl_samples_E10.5_12May_named_no_prim_ER <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER.rds")
+```
+
+
+
+```{r}
+#dir.create("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data")
+#dir.create("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5")
+```
+
+
+```{r}
+fl_samples_E10.5_12May_named_no_prim_ER_palantir <- fl_samples_E10.5_12May_named_no_prim_ER
+E10.5_metadata <- fl_samples_E10.5_12May_named_no_prim_ER_palantir@meta.data 
+E10.5_metadata <- E10.5_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident))
+fl_samples_E10.5_12May_named_no_prim_ER_palantir@meta.data <- E10.5_metadata
+
+write.csv(fl_samples_E10.5_12May_named_no_prim_ER_palantir@meta.data, "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/E10.5_palantir_metadata.csv", quote = F, row.names = F) 
+```
+
+
+
+```{r}
+DefaultAssay(fl_samples_E10.5_12May_named_no_prim_ER_palantir) <- "RNA"
+# Convert seurat object to AnnData
+SaveH5Seurat(fl_samples_E10.5_12May_named_no_prim_ER_palantir, filename = "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER_palantir.h5Seurat")
+Convert("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER_palantir.h5Seurat", dest = "h5ad")
+```
+
+
+```{r}
+fl_samples_E10.5_12May_named_no_prim_ER.h5Seurat <- LoadH5Seurat("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER.h5Seurat")
+```
+
+
+
+# Direct SCP package method. Don't use 
+```{r}
+repeat_fl_samples_E10.5_12May_named_no_prim_ER.h5ad <- srt_to_adata(
+  fl_samples_E10.5_12May_named_no_prim_ER,
+  features = NULL,
+  assay_X = "RNA",
+  slot_X = "counts",
+  assay_layers = NULL,
+  slot_layers = "counts",
+  convert_tools = FALSE,
+  convert_misc = FALSE,
+  verbose = TRUE
+)
+```
+
+```{r}
+#repeat_fl_samples_E10.5_12May_named_no_prim_ER.h5ad$write_h5ad("/Users/ekperekaamutaigwe/myproject/sc_an#alysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/repeat_fl_samples_E10.5_12May_named_no_prim_ER.h#5ad")
+```
+
+
+# DO NOT USE THIS METHOD
+```{r}
+palantir_fl_samples_E10.5_12May_named_no_prim_ER <- RunPalantir(
+  srt = fl_samples_E10.5_12May_named_no_prim_ER,
+  assay_X = "RNA",
+  slot_X = "counts",
+  assay_layers = "NULL",
+  slot_layers = "counts",
+  adata = NULL,
+  group_by = "cluster_ident",
+  linear_reduction = "pca",
+  nonlinear_reduction = "umap",
+  basis = NULL,
+  n_pcs = 30,
+  n_neighbors = 30,
+  dm_n_components = 10,
+  dm_alpha = 0,
+  dm_n_eigs = NULL,
+  early_group = "HSC/MPP",
+  early_cell = NULL,
+  terminal_cells = NULL,
+  terminal_groups = c("Mac", "MCP", "GMP/GP", "Mk2", "PEB3"),
+  num_waypoints = 1200,
+  scale_components = TRUE,
+  use_early_cell_as_start = TRUE,
+  adjust_early_cell = TRUE,
+  adjust_terminal_cells = TRUE,
+  max_iterations = 25,
+  n_jobs = 8,
+  point_size = 20,
+  palette = "viridis",
+  palcolor =  c("#F8A19F","#E2E2E2","darkorange2", "grey60","#B00068","#FE00FA"),
+  show_plot = TRUE,
+  save = FALSE,
+  dpi = 300,
+  dirpath = "./",
+  fileprefix = "",
+  return_seurat = !is.null(fl_samples_E10.5_12May_named_no_prim_ER)
+)
+```
+
+
+  
