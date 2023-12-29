@@ -179,10 +179,12 @@ DimPlot(fl_samples_E10.5_12May, reduction = "umap", group.by = "subcluster10", l
 ```
 
 
+
 ```{r, eval=FALSE}
 # Update the cluster ident column in the seurat object
 fl_samples_E10.5_12May <- SetIdent(fl_samples_E10.5_12May, value = fl_samples_E10.5_12May@meta.data$subcluster10)
 ```
+
 
 
 ### Find subclusters of cluster 11
@@ -310,7 +312,7 @@ fl_samples_E10.5_12May <- PrepSCTFindMarkers(fl_samples_E10.5_12May)
 ## Identification of all markers for each cluster(This takes a while to run. Therefore, only use this option if you have just one condition)
 
 ```{r, eval=FALSE}
-DefaultAssay(fl_samples_E10.5_12May) <- "SCT"
+DefaultAssay(fl_samples_E10.5_12May) <- "RNA"
 # code from the internet on how to remove specific genes before downstream analysis (Satijalab, Github)
 counts <- GetAssayData(fl_samples_E10.5_12May, assay = "SCT")
 counts <- counts[-(which(rownames(counts) %in% c("mt-Atp6", "mt-Nd1", "mt-Co1", "mt-Cytb",  "mt-Co2",  "mt-Nd4", "mt-Co3", "mt-Nd2", "mt-Nd4l", "mt-Atp8", "mt-Nd5", "mt-Nd3", "mt-Cytb1", "mt-Co31", "mt-Nd21",  "mt-Nd51",  "mt-Nd41",  "mt-Nd11", "mt-Nd4l1", "mt-Atp81", "mt-Co32"))),]
@@ -351,7 +353,7 @@ top_3_fl_samples_E10.5_12May <- markers_fl_samples_E10.5_12May %>% group_by(clus
 
 
 ```{r}
-DefaultAssay(fl_samples_E10.5_12May) <- "SCT"
+DefaultAssay(fl_samples_E10.5_12May) <- "RNA"
 ```
 
 
@@ -748,6 +750,7 @@ DotPlot(
 
 ```
 
+
 ```{r}
 # Plot UMAP
 set.seed(123)
@@ -775,7 +778,7 @@ DimPlot(object = fl_samples_E10.5_12May,
             theme(axis.text = element_text(size = 50, face = "bold"), 
             panel.background = element_rect(fill = "white"), 
             plot.background = element_rect(fill = "white", colour = "black", linewidth = 1)) 
-ggsave("repeated_phase_umap2_fl_samples_E10.5_12May_named.tif",
+ggsave("repeated_phase_umap2_fl_samples_E10.5_12May.tif",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
        width = 17, height = 15, device = "tiff")
 ```
@@ -804,17 +807,17 @@ fl_samples_E10.5_12May_named <-  RenameIdents(object = fl_samples_E10.5_12May,
                                       "3" = "Mk1",
                                       "4" = "EP2",
                                       "5" = "Prim-EB",
-                                      "6" = "MkP",
+                                      "6" = "MEP",
                                       "7_0" = "PEB1",
                                       "7_1" = "PEB2",
                                       "7_2" = "PEB3",
-                                      "8_0" = "EMP1.MPP1",
-                                      "8_1" = "EMP2.MPP2",
+                                      "8_0" = "HSC/MPP",
+                                      "8_1" = "HSC/MPP",
                                       "9" = "Mk2",
                                       "10_0" = "Mono",
                                       "10_1" = "Mac",
-                                      "11_0" = "Mast",
-                                      "11_1" = "GP",
+                                      "11_0" = "MCP",
+                                      "11_1" = "GMP/GP",
                                       "12_0" = "Mesench",
                                       "12_1" = "Endo",
                                       "13" = "Hepato")
@@ -823,6 +826,16 @@ fl_samples_E10.5_12May_named$cluster_ident <- Idents(fl_samples_E10.5_12May_name
 
 ```
 
+
+## Annotate clusters in FL_E10.5 samples
+```{r}
+# Fetal liver
+fl_samples_E10.5_12May_named <-  RenameIdents(object = fl_samples_E10.5_12May_named,
+                                      "EMP/HSC-like" = "HSC/MPP")
+
+fl_samples_E10.5_12May_named$cluster_ident <- Idents(fl_samples_E10.5_12May_named)
+
+```
 
 
 ```{r}
@@ -837,8 +850,9 @@ DimPlot(object = fl_samples_E10.5_12May_named,
 
 
 ```{r}
-#DefaultAssay(fl_samples_E10.5_12May_named) <- "RNA"
+#DefaultAssay(fl_samples_E10.5_12May_named) <- "SCT"
 ```
+
 
 ```{r}
 # Run PrepSCTFindMarkers to ensure that the fixed value is set properly, as SCT creates corrected counts by setting the sequencing depth for all the cells to a fixed value
@@ -874,9 +888,10 @@ write.csv(markers_fl_samples_E10.5_12May_named, file = paste0(here("results/FL_E
 
 top_3_markers_fl_samples_E10.5_12May_named <- markers_fl_samples_E10.5_12May_named %>% group_by(cluster) %>% 
   slice_max(avg_log2FC, n = 3)
-
-#top_30_markers_fl_samples_E12.5_12May <- markers_fl_samples_E12.5_12May %>% group_by(cluster) %>% 
-  #slice_max(avg_log2FC, n = 30)
+top_5_markers_fl_samples_E10.5_12May_named <- markers_fl_samples_E10.5_12May_named %>% group_by(cluster) %>% 
+  slice_max(avg_log2FC, n = 5)
+top_10_markers_fl_samples_E10.5_12May_named <- markers_fl_samples_E10.5_12May_named %>% group_by(cluster) %>% 
+  slice_max(avg_log2FC, n = 10)
 ```
 
 
@@ -895,7 +910,7 @@ DimPlot(object = fl_samples_E10.5_12May_named,
 ## Subset clusters of interest. 
 
 ```{r, eval=FALSE}
-fl_samples_E10.5_12May_named <- subset(fl_samples_E10.5_12May_named, idents =c("EMP1.MPP1", "EMP2.MPP2", "GP", "Mono", "Mac", "Mast", "MEP", "MkP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+fl_samples_E10.5_12May_named <- subset(fl_samples_E10.5_12May_named, idents =c("HSC/MPP", "GMP/GP", "Mono", "Mac", "MCP", "MEP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
 ```
 
 
@@ -914,21 +929,21 @@ fl_samples_E10.5_12May_named <- SCTransform(fl_samples_E10.5_12May_named,
 
 
 ```{r}
-fl_samples_E10.5_12May_named@active.ident <- factor(fl_samples_E10.5_12May_named@active.ident, levels = c("EMP1.MPP1", "EMP2.MPP2", "GP", "Mono", "Mac", "Mast", "MEP", "MkP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+fl_samples_E10.5_12May_named@active.ident <- factor(fl_samples_E10.5_12May_named@active.ident, levels = c("HSC/MPP", "GMP/GP", "Mono", "Mac", "MCP", "MEP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
 ```
 
 
 ```{r, eval=FALSE}
-fl_samples_E10.5_12May_named$cluster_ident <- factor(fl_samples_E10.5_12May_named$cluster_ident, levels = c("EMP1.MPP1", "EMP2.MPP2", "GP", "Mono", "Mac", "Mast", "MEP", "MkP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+fl_samples_E10.5_12May_named$cluster_ident <- factor(fl_samples_E10.5_12May_named$cluster_ident, levels = c("HSC/MPP", "GMP/GP", "Mono", "Mac", "MCP", "MEP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
 ```
 
 
 
 ```{r}
 # Set colors
-clust_cols <- c(EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD", MkP = "#00AFBB", Mk2 = "#F8A19F", Mast = "#E2E2E2", PEB1 = "#2ED9FF", PEB2 = "#C4451C", Mono = "#FBE426", Mac = "darkorange2", GP = "grey60", MEP = "#F6222E" ,EMP1.MPP1= "#B00068", PEB3 = "#FE00FA", `Prim-EB` = "#1C8356", EMP2.MPP2 = "#F8766D")
+clust_cols <- c(EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD",  Mk2 = "#F8A19F", MCP = "#E2E2E2", PEB1 = "#2ED9FF", PEB2 = "#C4451C", Mono = "#FBE426", Mac = "darkorange2", `GMP/GP` = "grey60", MEP = "#F6222E",  PEB3 = "#FE00FA", `Prim-EB` = "#1C8356", `HSC/MPP` = "#00AFBB")
 ```
-PEry2 = "#90AD1C", "dodgerblue3", Hepato = "#3283FE", Mesench = , Endo = 
+PEry2 = "#90AD1C", "dodgerblue3", Hepato = "#3283FE", Mesench = , Endo = ,EMP1.MPP1= "#B00068",MkP = "#00AFBB",
 
 
 ```{r}
@@ -978,7 +993,7 @@ ncells_E10.5
 
 ggplot(ncells_E10.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
   geom_col() +
-  scale_fill_manual(values = c(EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD", MkP = "#00AFBB", Mk2 = "#F8A19F", Mast = "#E2E2E2", PEB1 = "#2ED9FF", PEB2 = "#C4451C", Mono = "#FBE426", Mac = "darkorange2", GP = "grey60", MEP = "#F6222E" ,EMP1.MPP1= "#B00068", PEB3 = "#FE00FA", `Prim-EB` = "#1C8356", EMP2.MPP2 = "#F8766D")) +
+  scale_fill_manual(values = c(EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD",  Mk2 = "#F8A19F", MCP = "#E2E2E2", PEB1 = "#2ED9FF", PEB2 = "#C4451C", Mono = "#FBE426", Mac = "darkorange2", `GMP/GP` = "grey60", MEP = "#F6222E",  PEB3 = "#FE00FA", `Prim-EB` = "#1C8356", `HSC/MPP` = "#00AFBB")) +
   theme(axis.text = element_text(size = 50),
         panel.background = element_rect(fill = "white"), 
         plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) +
@@ -986,7 +1001,7 @@ ggplot(ncells_E10.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
         theme(axis.title.y = element_text(size = 50, face = "bold")) +
   geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 11, face = "bold") +
   #scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
-  scale_y_continuous(breaks = seq(0, 1900, by=500), limits=c(0,1900)) +
+  scale_y_continuous(breaks = seq(0, 2500, by=500), limits=c(0,2500)) +
   xlab("Cell types") + 
  # theme_bw() + 
   NoLegend() +
@@ -1017,14 +1032,12 @@ rm(E10.5_rep1, E10.5_rep2)
 ```
 
 
-
-[1] 4167.611
-[1] 4281.467
+[1] 4179.761
+[1] 4294.002
 [1] 19243.11
 [1] 17704.9
-
 ```{r}
-DefaultAssay(fl_samples_E10.5_12May_named) <- "SCT"
+DefaultAssay(fl_samples_E10.5_12May_named) <- "RNA"
 # EMP/MPP
 a <- FeaturePlot(fl_samples_E10.5_12May_named, 
             reduction = "umap", 
@@ -1094,6 +1107,22 @@ d <- FeaturePlot(fl_samples_E10.5_12May_named,
             theme(axis.line = element_blank()) +
             theme(axis.ticks = element_blank()) 
 
+e <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Mecom"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 2) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank()) 
 
 a
 ggsave("EMP7_hlf_markers1_fl_samples_E10.5_12May_named.tiff",
@@ -1111,12 +1140,17 @@ d
 ggsave("EMP7_Ly6a_markers4_fl_samples_E10.5_12May_named.tiff",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
        width = 17, height = 15, device = "tiff")
+
+e
+ggsave("EMP7_Mecom_markers5_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
 ```
 
 
 
 ```{r}
-# EMP/MPP
+# MPP/MP
 a <- FeaturePlot(fl_samples_E10.5_12May_named, 
             reduction = "umap", 
             features = c("Fcgr3"),
@@ -1136,7 +1170,7 @@ a <- FeaturePlot(fl_samples_E10.5_12May_named,
 
 b <- FeaturePlot(fl_samples_E10.5_12May_named, 
             reduction = "umap", 
-            features = c("Itga2b"),
+            features = c("Ccl9"),
             order = TRUE,
             min.cutoff = 'q10', 
             cols = c("grey", "red"),
@@ -1225,7 +1259,7 @@ ggsave("EMP_marker5_fl_samples_E10.5_12May_named.tiff",
 ```
 
 ```{r}
-# EMP2
+# MPP
 a <- FeaturePlot(fl_samples_E10.5_12May_named, 
             reduction = "umap", 
             features = c("Prtn3"),
@@ -2519,7 +2553,7 @@ known_markers1 <- c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "
 library(scCustomize)
 
 #tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E10.5_12May_named.tif", width = 550, height = 550)
-Clustered_DotPlot(seurat_object = fl_samples_E10.5_12May_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "Spi1", "Csf1r", "Pf4", "Vwf", "Elane", "Hp", "Cx3cr1", "Ifitm1", "Irf8", "Itga2b", "Prtn3", "Thbs1","Klf1", "Car1", "Cd34", "Fcgr3", "Ccr2", "C1qa", "C1qb", "Prg2", "Stx3", "Il7r", "Prg3", "Hlf", "Mecom","Prg2", "Ppbp", "S100a8", "Hdc", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Hdc", "Cpa3", "Gp1bb", "Cd24a","Hoxa9", "Hoxa7", "Myb", "Epor", "Mpo", "Rhd", "Ms4a3", "Perp", "Muc13", "Plek", "F2r", "Cd93"), k = 10, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 10, row_label_fontface = "bold",colors_use_idents = c(EMP1.MPP1= "#B00068", EMP2.MPP2 = "#F8766D", GP = "grey60", Mono = "#FBE426", Mac = "darkorange2", Mast = "#E2E2E2", MEP = "#F6222E" , MkP = "#00AFBB", Mk1 = "#DEA0FD", Mk2 = "#F8A19F", `Prim-EB` = "#1C8356", EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", PEB1 = "#2ED9FF", PEB2 = "#C4451C", PEB3 = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red"))
+Clustered_DotPlot(seurat_object = fl_samples_E10.5_12May_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "Spi1", "Csf1r", "Pf4", "Vwf", "Elane", "Hp", "Cx3cr1", "Ifitm1", "Irf8", "Itga2b", "Prtn3", "Thbs1","Klf1", "Car1", "Cd34", "Fcgr3", "Ccr2", "C1qa", "C1qb", "Prg2", "Stx3", "Il7r", "Prg3", "Hlf", "Mecom","Prg2", "Ppbp", "S100a8", "Hdc", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Hdc", "Cpa3", "Gp1bb", "Cd24a","Hoxa9", "Hoxa7", "Myb", "Epor", "Mpo", "Rhd", "Ms4a3", "Perp", "Muc13", "Plek", "F2r", "Cd93", "Rag1", "Ccl9", "Ccr9", "Ly6a"), k = 9, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 10, row_label_fontface = "bold",colors_use_idents = c(`HSC/MPP` = "#00AFBB", `GMP/GP` = "grey60", Mono = "#FBE426", Mac = "darkorange2", MCP = "#E2E2E2", MEP = "#F6222E", Mk1 = "#DEA0FD",  Mk2 = "#F8A19F", `Prim-EB` = "#1C8356", EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE",   PEB1 = "#2ED9FF", PEB2 = "#C4451C", PEB3 = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red"))
 
 #dev.off()
 ```
@@ -2570,6 +2604,9 @@ ggsave("R_by_sample_umap_of_replicates_fl_samples_E10.5_12May_amed.pdf",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
        width = 17, height = 15)
 ```
+```{r}
+DefaultAssay(fl_samples_E10.5_12May_named) <- "RNA"
+```
 
 
 # Plot top 3 genes
@@ -2585,7 +2622,7 @@ mat <- t(scale(t(mat)))
 
 cols_sample_group <- c(FL_E10.5 = "#E2E2E2" )
 
-clust <- c("EMP1.MPP1", "EMP2.MPP2", "GP", "Mono", "Mac", "Mast", "MEP", "MkP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3",  "PEB1", "PEB2", "PEB3")
+clust <- c("HSC/MPP", "GMP/GP", "Mono", "Mac", "MCP", "MEP", "Mk1", "Mk2", "Prim-EB","EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3")
 
 clusters <- fl_samples_E10.5_12May_named$cluster_ident
 
@@ -2609,7 +2646,7 @@ heat <- ComplexHeatmap::Heatmap(mat, name="E10.5 Top3",
                         column_title = clust,
                         cluster_column_slices = FALSE,
                         column_title_gp = gpar(fontsize = 20),
-                        row_names_gp = gpar(fontsize = 25),
+                        row_names_gp = gpar(fontsize = 20),
                         column_gap = unit(0.5, "mm"),
                         cluster_rows = TRUE,
                         show_row_dend = FALSE,
@@ -2762,7 +2799,7 @@ ggsave("Mesench_violin_fl_samples_E14.5_12May_named.pdf",
 ## Subset clusters of interest. 
 
 ```{r, eval=FALSE}
-fl_samples_E10.5_12May_named_subset <- subset(fl_samples_E10.5_12May_named, idents =c("MEP", "MkP", "Mk1", "Mk2", "EP1", "EP2", "EP3",  "PEB1", "PEB2", "PEB3"))
+fl_samples_E10.5_12May_named_subset <- subset(fl_samples_E10.5_12May_named, idents =c("MEP", "Mk1", "Mk2", "EP1", "EP2", "EP3",  "PEB1", "PEB2", "PEB3"))
 ```
 
 
@@ -2781,7 +2818,7 @@ fl_samples_E10.5_12May_named_subset <- SCTransform(fl_samples_E10.5_12May_named_
 
 ```{r}
 # Set colors
-clust_cols_subset <- c(EP1 = "dodgerblue3", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD", MkP = "#00AFBB", Mk2 = "lightsteelblue4",PEB1 = "#2ED9FF", PEB2 = "#C4451C", MEP = "#F6222E" ,PEB3 = "#FE00FA")
+clust_cols_subset <- c(EP1 = "dodgerblue3", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD", Mk2 = "lightsteelblue4",PEB1 = "#2ED9FF", PEB2 = "#C4451C", MEP = "#F6222E" ,PEB3 = "#FE00FA")
 ```
 EP5a = "#325A9B", 
 
@@ -2805,14 +2842,13 @@ ggsave("R_umap_fl_samples_E10.5_12May_named_subset.pdf",
 
 ```{r}
 # Run PrepSCTFindMarkers to ensure that the fixed value is set properly, as SCT creates corrected counts by setting the sequencing depth for all the cells to a fixed value
-DefaultAssay(fl_samples_E10.5_12May_named_subset) <- "integrated"
-fl_samples_E10.5_12May_named_subset <- PrepSCTFindMarkers(fl_samples_E10.5_12May_named_subset) 
+DefaultAssay(fl_samples_E10.5_12May_named) <- "integrated"
+fl_samples_E10.5_12May_named <- PrepSCTFindMarkers(fl_samples_E10.5_12May_named) 
 ```
 
 
 ```{r}
-#EP1_vs_MEP-EP_E10.5_mep_ep_ep1 <- 
-EP1_vs_EP2_EP3_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named_subset, 
+EP1_vs_EP2_EP3_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named, 
                                   ident.1 = "EP1",
                                   ident.2 = c("EP2", "EP3"),
                                   assay = "SCT")
@@ -2901,7 +2937,7 @@ ggsave("EP1_vs_EP2_EP3_volcano_fl_samples_E10.5_12May_named_subset.pdf",
 
 ```{r}
 #EP1_vs_EP2 AND EP3
-MEP_vs_EP2_EP3_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named_subset, 
+MEP_vs_EP2_EP3_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named, 
                                   ident.1 = "MEP",
                                   ident.2 = c("EP2", "EP3"),
                                   assay = "SCT")
@@ -2987,7 +3023,7 @@ ggsave("MEP.EP2_EP3_volcano_fl_samples_E10.5_12May_named_subset.pdf",
 ```
 
 ```{r}
-EP1_vs_MEP_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named_subset, 
+EP1_vs_MEP_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named, 
                                   ident.1 = "EP1",
                                   ident.2 = "MEP",
                                   assay = "SCT")
@@ -3074,7 +3110,7 @@ ggsave("EP1.MEP_volcano_fl_samples_E10.5_12May_named_subset.pdf",
 ```
 
 ```{r}
-EP2_vs_EP1_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named_subset, 
+EP2_vs_EP1_E10.5_subset <- FindMarkers(fl_samples_E10.5_12May_named, 
                                   ident.1 = "EP2",
                                   ident.2 = "EP1",
                                   assay = "SCT")
@@ -3161,6 +3197,32 @@ ggsave("EP2.EP1_volcano_fl_samples_E10.5_12May_named_subset.pdf",
 ```
 
 
+
+```{r}
+fl_samples_E10.5_12May_named_no_prim_ER <- subset(fl_samples_E10.5_12May_named, idents = c("HSC/MPP","GMP/GP", "Mono", "Mac", "MCP", "MEP", "Mk1", "Mk2", "EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+```
+
+
+
+
+```{r}
+DefaultAssay(fl_samples_E10.5_12May_named_no_prim_ER) <- "RNA"
+fl_samples_E10.5_12May_named_no_prim_ER@active.ident <- factor(fl_samples_E10.5_12May_named_no_prim_ER@active.ident, levels = c("HSC/MPP", "GMP/GP", "Mono", "Mac", "MCP", "MEP", "Mk1", "Mk2", "EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+```
+
+
+```{r, eval=FALSE}
+fl_samples_E10.5_12May_named_no_prim_ER$cluster_ident <- factor(fl_samples_E10.5_12May_named_no_prim_ER$cluster_ident, levels = c("HSC/MPP", "GMP/GP", "Mono", "Mac", "MCP", "MEP", "Mk1", "Mk2", "EP1", "EP2", "EP3","PEB1", "PEB2", "PEB3"))
+```
+
+
+
+```{r}
+saveRDS(fl_samples_E10.5_12May_named_no_prim_ER, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER.rds")
+```
+
+
+
 I WILL DO RNA VELOCITY AND TRAJECTORY INFERENCE BEFORE I COME BACK TO DIFFERENTIAL GENE EXPRESSION ANALYSIS AND PATHWAY ANALYSIS
 
 ```{r}
@@ -3173,44 +3235,50 @@ E10.5_rnavelo <- "~/myproject/sc_analysis_project/msc_project/rnavelocity/E10.5_
 
 ## Ery
 ```{r}
+DefaultAssay(fl_samples_E10.5_12May_named_no_prim_ER) <- "RNA"
 # Make a copy of the original object to avoid stories that touch
-fl_samples_E10.5_12May_named1 <- fl_samples_E10.5_12May_named
+fl_samples_E10.5_12May_named_no_prim_ER1 <- fl_samples_E10.5_12May_named_no_prim_ER
+
 # save metadata table
-fl_samples_E10.5_12May_named1$barcode <- colnames(fl_samples_E10.5_12May_named1)
-fl_samples_E10.5_12May_named1$UMAP_1 <- fl_samples_E10.5_12May_named1@reductions$umap@cell.embeddings[,1]
-fl_samples_E10.5_12May_named1$UMAP_2 <- fl_samples_E10.5_12May_named1@reductions$umap@cell.embeddings[,2]
+fl_samples_E10.5_12May_named_no_prim_ER1$barcode <- colnames(fl_samples_E10.5_12May_named_no_prim_ER1)
+fl_samples_E10.5_12May_named_no_prim_ER1$UMAP_1 <- fl_samples_E10.5_12May_named_no_prim_ER1@reductions$umap@cell.embeddings[,1]
+fl_samples_E10.5_12May_named_no_prim_ER1$UMAP_2 <- fl_samples_E10.5_12May_named_no_prim_ER1@reductions$umap@cell.embeddings[,2]
 ```  
 
 
 ```{r}
 # Select column variables of interest
-Ery_E10.5_metadata <- fl_samples_E10.5_12May_named1@meta.data
+Ery_E10.5_metadata <- fl_samples_E10.5_12May_named_no_prim_ER1@meta.data
 Ery_E10.5_metadata <- Ery_E10.5_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident, barcode, UMAP_1, UMAP_2)) %>% dplyr::rename("CellID" = cells)
 
-fl_samples_E10.5_12May_named_subset1@meta.data <- Ery_E10.5_metadata
+fl_samples_E10.5_12May_named_no_prim_ER1@meta.data <- Ery_E10.5_metadata
 ```
 
 ```{r}
-write.csv(fl_samples_E10.5_12May_named1@meta.data, file = paste0(E10.5_rnavelo, "Ery_E10.5_metadata.csv"), quote = F, row.names = F)
+write.csv(fl_samples_E10.5_12May_named_no_prim_ER1@meta.data, file = paste0(E10.5_rnavelo, "full_E10.5_metadata.csv"), quote = F, row.names = F)
 
 ```
+
 
 
 ```{r}
 # Write expression counts matrix
-Ery_E10.5_counts_matrix <- GetAssayData(fl_samples_E10.5_12May_named1, assay = "SCT", slot = "counts")
-writeMM(Ery_E10.5_counts_matrix, file = paste0(E10.5_rnavelo, "Ery_E10.5_counts.mtx"))
+Ery_E10.5_counts_matrix <- GetAssayData(fl_samples_E10.5_12May_named_no_prim_ER1, assay = "RNA", layer = "counts") 
+#Ery_E10.5_counts_matrix <- Ery_E10.5_counts_matrix %>% as.data.frame() 
+write.csv(Ery_E10.5_counts_matrix, "rnavelocity/E10.5_rnavelocity/full_E10.5_counts.csv", quote = F, row.names = T)
 ```
+
+
 
 ```{r}
 # Write dimensionality reduction matrix
-write.csv(fl_samples_E10.5_12May_named1@reductions$pca@cell.embeddings, file = paste0(E10.5_rnavelo, "Ery_E10.5_pca.csv"), quote = F, row.names = F)
+write.csv(fl_samples_E10.5_12May_named_no_prim_ER1@reductions$pca@cell.embeddings, file = paste0(E10.5_rnavelo, "full_E10.5_pca.csv"), quote = F, row.names = F)
 ```
 
 
 ```{r}
 # Write gene names
-write.table(data.frame("gene" = rownames(Ery_E10.5_counts_matrix)), file = paste0(E10.5_rnavelo, "Ery_E10.5_gene_names.csv"), quote = F, row.names = F, col.names = F)
+write.table(data.frame("gene" = rownames(Ery_E10.5_counts_matrix)), file = paste0(E10.5_rnavelo, "full_E10.5_gene_names.csv"), quote = F, row.names = F, col.names = F)
 ```
 
 
@@ -3296,7 +3364,7 @@ fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45 <- subset(fl_samples_E10.5_
 
 # Sept 11
 saveRDS(fl_samples_E10.5_12May, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_clustered_sexgenesnotremoved.rds")
-saveRDS(fl_samples_E10.5_12May_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named.rds")
+saveRDS(fl_samples_E10.5_12May_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named.rds") # Dec. 23
 saveRDS(markers_fl_samples_E10.5_12May_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/markers_fl_samples_E10.5_12May_named.rds")
 saveRDS(fl_samples_E10.5_12May_named_subset, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset.rds")
 saveRDS(fl_samples_E10.5_12May_named_subset_DEG, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset_DEG.rds")
@@ -4818,219 +4886,3 @@ fl_samples_E14.5_12May_named_DEG2_sce <- SingleCellExperiment(assays = list(coun
 
 
 
-# Determine sex of cells at E14.5 using cellXY
-```{r}
-library(cellXY)
-library(speckle)
-library(SingleCellExperiment)
-library(CellBench)
-library(org.Mm.eg.db)
-library(caret)
-library(scRNAseq)
-
-
-counts <- counts(fl_samples_E14.5_12May_named_DEG2_sce)
-ann <- select(org.Mm.eg.db, keys=rownames(fl_samples_E14.5_12May_named_DEG2_sce),
-              columns=c("ENSEMBL","SYMBOL"), keytype="SYMBOL")
-```
-
-
-```{r}
-# How many Ensembl identifiers have an associated gene symbol
-which(is.na(ann$ENSEMBL)) %>% length()
-
-# How many of them are unique
-which(duplicated(ann$ENSEMBL)) %>% length()
-
-# Determine the indices for the non-NA genes
-non_na_idx <- !is.na(ann$ENSEMBL)
-non_duplicated_idx <- which(duplicated(ann$ENSEMBL) == FALSE)
-
-# How many rows does annotations have?
-ann %>% nrow()
-
-# Return only the non-duplicated genes using the indices
-ann <- ann[non_na_idx, ]
-#ann <- ann[non_duplicated_idx, ]
-
-# How many rows does annotations now have?
-ann %>% nrow()
-
-
-m <- match(rownames(counts), ann$SYMBOL)
-rownames(counts) <- ann$SYMBOL[m]
-```
-
-
-
-```{r}
-
-
-sex <- classifySex(counts, genome="Mm")
-
-table(sex$prediction)
-
-prep_sc_lst = preprocess(x=counts,genome="Mm",qc = FALSE)
-
-tcm_ps = prep_sc_lst$tcm.final[sce_s,]
-
-#boxplot(counts["Xist",]~sex$prediction)
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-# Prepare list of human sex genes to convert to mouse
-female_sex_genes <- c("ARHGAP4", "STS", "ARSD", "ARSL", "AVPRZ", "BRS3", "S100G",
-"CHM", "CLCN4", "DDX3X", "EIF1AX", "EIF2S3", "GPM6B",
-"GRPR", "HCFC1", "L1CAM", "MAOA", "MYCLP1", "NAP1L3",
-"GPR143", "CDK16", "PLXNB3", "PRKX", "RBBP7", "RENBP",
-"RPS4X", "TRAPPCZ", "SH3BGRL", "TBL1X", "UBA1", "KDM6A",
-"XG", "XIST", "ZFX", "PUDP", "PNPLA4", "USP9X", "KDM5C",
-"SMC1A", "NAA10", "OFD1", "IKBKG", "PIR", "INEZ", "INE1",
-"AP1SZ", "GYGZ", "MED14", "RAB9A", "ITMZA", "MORF4L2",
-"CA5B", "SRPX2", "GEMIN8", "CTPSZ", "CLTRN", "NLGN4X",
-"DUSP21", "ALG13", "SYAP1", "SYTL4", "FUNDC1", "GAB3",
-"RIBC1", "FAM9C", "CA5BP1")
-
-library(Orthology.eg.db)
-library(org.Mm.eg.db)
-library(org.Hs.eg.db)
-
-
-
-library("biomaRt")
-   #human <- biomaRt::useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-human <- useEnsembl("ensembl","hsapiens_gene_ensembl", host="https://dec2021.archive.ensembl.org/")
-   #mouse <- biomaRt::useMart("ensembl", dataset = "mmusculus_gene_ensembl")
-   mouse <- useEnsembl("ensembl","mmusculus_gene_ensembl", host="https://dec2021.archive.ensembl.org/")
-
-   genesV2 <- getLDS(attributes = c("hgnc_symbol"), filters = "hgnc_symbol", 
-                 values = female_sex_genes , mart = human, attributesL = c("mgi_symbol"), martL = mouse, uniqueRows=T)
-
-   # Alternative method
-human = useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-mouse = useMart("ensembl", dataset = "mmusculus_gene_ensembl") 
-getLDS(attributes = c("hgnc_symbol","chromosome_name", "start_position"), 
-    filters = "hgnc_symbol", values = "XIST", mart = human, 
-    attributesL = c("chromosome_name","start_position"), martL = mouse) 
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-     
-
-female_sex_genes <- as.data.frame(female_sex_genes) %>% 
-  dplyr::mutate("gene" = female_sex_genes) %>% 
-  column_to_rownames(var = "gene")
-
-
-male_sex_genes <- c("AMELY", "DAZ1", "PRKY", "RBMY1A1", "RBMY1HP", "RPS4Y1", "SRY",
-"TSPY1", "UTY", "ZFY","KDM5D", "USP9Y", "DDX3Y", "PRY", "XKRY",
-"BPYZ", "VCY", "CDY1", "EIF1AY", "TMSB4Y","CDYZA", "NLGN4Y",
-"PCDH11Y", "HSFY1", "TGIF2LY", "TBL1Y", "RPS4Y2", "HSFY2",
-"CDYZB", "TXLNGY", "CDY1B", "DAZ3", "DAZZ", "DAZ4")
-
-male_sex_genes <- as.data.frame(male_sex_genes) %>% 
-  dplyr::mutate("gene" = male_sex_genes) %>% 
-  column_to_rownames(var = "gene")
-
-```
-
-
-```{r}
-convert_mouse_to_human <- function(gene_list) { 
-     output = c()
-     mouse_human_genes = read.csv("https://www.informatics.jax.org/downloads/reports/HOM_MouseHumanSequence.rpt",sep="\t")
-
-     for(gene in gene_list) {
-          class_key = (mouse_human_genes %>% filter(Symbol == gene & Common.Organism.Name == "mouse, laboratory"))[['DB.Class.Key']]
-          if( !identical(class_key, integer(0)) ) {
-               human_genes = (mouse_human_genes %>% filter(DB.Class.Key == class_key & Common.Organism.Name=="human"))[,"Symbol"]
-               for(human_gene in human_genes) {
-                    output = rbind(c(gene, human_gene), output)
-               }
-          }
-     }
-     return (output)
-}
-
-convert_human_to_mouse <- function(gene_list) {
-    output = c()
-    mouse_human_genes = read.csv("https://www.informatics.jax.org/downloads/reports/HOM_MouseHumanSequence.rpt",sep="\t")
-
-    for(gene in gene_list) {
-          class_key = (mouse_human_genes %>% filter(Symbol == gene & Common.Organism.Name == "human"))[['DB.Class.Key']]
-          if( !identical(class_key, integer(0)) ) {
-            human_genes = (mouse_human_genes %>% filter(DB.Class.Key == class_key & Common.Organism.Name=="mouse, laboratory"))[,"Symbol"]
-            for(human_gene in human_genes) {
-                output = rbind(c(gene, human_gene), output)
-            }
-          }
-     }
-     return (output)
-}
-
-
-
-female_genes <- convert_human_to_mouse(female_sex_genes)
-male_genes <- convert_human_to_mouse(male_sex_genes)
-```
-
-```{r}
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-# Get mouse orthologs of human genes
-library(orthogene)
-
-
-female_sex_genes_df <- orthogene::convert_orthologs(gene_df = female_sex_genes,
-                                        gene_input = "rownames", 
-                                        gene_output = "rownames", 
-                                        input_species = "human",
-                                        output_species = "mouse",
-                                        non121_strategy = "drop_both_species")
-
-male_sex_genes_df <- orthogene::convert_orthologs(gene_df = male_sex_genes,
-                                        gene_input = "rownames", 
-                                        gene_output = "rownames", 
-                                        input_species = "human",
-                                        output_species = "mouse",
-                                        non121_strategy = "drop_both_species")
-```

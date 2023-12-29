@@ -1858,7 +1858,7 @@ I WILL DO RNA VELOCITY AND TRAJECTORY INFERENCE BEFORE I COME BACK TO DIFFERENTI
 
 ```{r}
 #Create a directory to save relevant matrices
-dir.create("~/myproject/sc_analysis_project/msc_project/rnavelocity/E12.5_rnavelocity")
+#dir.create("~/myproject/sc_analysis_project/msc_project/rnavelocity/E12.5_rnavelocity")
 E12.5_rnavelo <- "~/myproject/sc_analysis_project/msc_project/rnavelocity/E12.5_rnavelocity/"
 ```
 
@@ -1868,10 +1868,12 @@ E12.5_rnavelo <- "~/myproject/sc_analysis_project/msc_project/rnavelocity/E12.5_
 
 ## Ery
 ```{r}
+DefaultAssay(fl_samples_E12.5_12May_named_subset) <- "SCT"
+fl_samples_E12.5_12May_named_subset1 <- fl_samples_E12.5_12May_named_subset
 # save umap projection
-fl_samples_E12.5_12May_named_subset$barcode <- colnames(fl_samples_E12.5_12May_named_subset)
-fl_samples_E12.5_12May_named_subset$UMAP_1 <- fl_samples_E12.5_12May_named_subset@reductions$umap@cell.embeddings[,1]
-fl_samples_E12.5_12May_named_subset$UMAP_2 <- fl_samples_E12.5_12May_named_subset@reductions$umap@cell.embeddings[,2]
+fl_samples_E12.5_12May_named_subset1$barcode <- colnames(fl_samples_E12.5_12May_named_subset1)
+fl_samples_E12.5_12May_named_subset1$UMAP_1 <- fl_samples_E12.5_12May_named_subset1@reductions$umap@cell.embeddings[,1]
+fl_samples_E12.5_12May_named_subset1$UMAP_2 <- fl_samples_E12.5_12May_named_subset1@reductions$umap@cell.embeddings[,2]
 ```  
 
 
@@ -1879,34 +1881,34 @@ fl_samples_E12.5_12May_named_subset$UMAP_2 <- fl_samples_E12.5_12May_named_subse
 
 
 # Select column variables of interest
-Ery_E12.5_metadata <- fl_samples_E12.5_12May_named_subset@meta.data
+Ery_E12.5_metadata <- fl_samples_E12.5_12May_named_subset1@meta.data
 Ery_E12.5_metadata <- Ery_E12.5_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident, barcode, UMAP_1, UMAP_2)) %>% dplyr::rename("CellID" = cells)
 
-fl_samples_E12.5_12May_named_subset@meta.data <- Ery_E12.5_metadata
+fl_samples_E12.5_12May_named_subset1@meta.data <- Ery_E12.5_metadata
 ```
 
 ```{r}
 # Save metadata for RNA velocity and pseudotime
-write.csv(fl_samples_E12.5_12May_named_subset@meta.data, file = paste0(E12.5_rnavelo, "Ery_E12.5_metadata.csv"), quote = F, row.names = F)
+write.csv(fl_samples_E12.5_12May_named_subset1@meta.data, file = paste0(E12.5_rnavelo, "full_E12.5_metadata.csv"), quote = F, row.names = F)
 
 ```
 
 
 ```{r}
 # Write expression counts matrix
-Ery_E12.5_counts_matrix <- GetAssayData(fl_samples_E12.5_12May_named_subset, assay = "SCT", slot = "counts")
-writeMM(Ery_E12.5_counts_matrix, file = paste0(E12.5_rnavelo, "Ery_E12.5_counts.mtx"))
+Ery_E12.5_counts_matrix <- GetAssayData(fl_samples_E12.5_12May_named_subset1, assay = "SCT", slot = "counts")
+writeMM(Ery_E12.5_counts_matrix, file = paste0(E12.5_rnavelo, "full_E12.5_counts.mtx"))
 ```
 
 ```{r}
 # Write dimensionality reduction matrix
-write.csv(fl_samples_E12.5_12May_named_subset@reductions$pca@cell.embeddings, file = paste0(E12.5_rnavelo, "Ery_E12.5_pca.csv"), quote = F, row.names = F)
+write.csv(fl_samples_E12.5_12May_named_subset1@reductions$pca@cell.embeddings, file = paste0(E12.5_rnavelo, "full_E12.5_pca.csv"), quote = F, row.names = F)
 ```
 
 
 ```{r}
 # Write gene names
-write.table(data.frame("gene" = rownames(Ery_E12.5_counts_matrix)), file = paste0(E12.5_rnavelo, "Ery_E12.5_gene_names.csv"), quote = F, row.names = F, col.names = F)
+write.table(data.frame("gene" = rownames(Ery_E12.5_counts_matrix)), file = paste0(E12.5_rnavelo, "full_E12.5_gene_names.csv"), quote = F, row.names = F, col.names = F)
 ```
 
 
