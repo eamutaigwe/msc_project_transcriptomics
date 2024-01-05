@@ -1,0 +1,1368 @@
+---
+title: "integrate fetal liver E10.5, E12.5 and E14.5 clusters of interest for DESeq2 differential expression analysis"
+author: "Ekpereka Amutaigwe"
+date: '2022-06-01'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages
+
+```{r}
+suppressPackageStartupMessages ({
+library(here)
+library(scater)
+#library(scran)
+library(Seurat)
+library(tidyverse)
+library(cowplot)
+library(Matrix.utils)
+library(dplyr)
+library(Matrix)
+library(purrr)
+library(reshape2)
+library(S4Vectors)
+library(SingleCellExperiment)
+library(pheatmap)
+library(DEGreport)
+library(glmGamPoi)
+library(DESeq2)
+library(data.table)
+library(RColorBrewer)
+library(pheatmap)
+#library(dittoSeq)
+library(ComplexHeatmap)
+library(patchwork)
+library(gridExtra)
+library(grid)
+library(scales)
+library(RColorBrewer)
+#library(sva) # For batch effect removal using Combat-seq
+library(SCENIC)
+library(AUCell)
+})
+```
+
+
+```{r}
+dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/data", recursive = TRUE)
+dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/results", recursive = TRUE)
+dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures", recursive = TRUE)
+```
+
+
+#Read in datasets
+```{r}
+fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45 <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E10.5/fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45.rds")
+fl_samples_E12.5_12May_named_subset_DEG_merge <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_DEG_merge.rds")
+fl_samples_E14.5_12May_named_subset_DEG_merge <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_DEG_merge.rds")
+```
+
+
+
+## Merge subsets from different time points. 
+```{r}
+# Merge fetal liver samples for downstream analysis. 
+fl_samples_DEG_noCd45 <- merge(x = fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45, y = list(fl_samples_E12.5_12May_named_subset_DEG_merge, fl_samples_E14.5_12May_named_subset_DEG_merge))
+
+fl_samples_DEG_noCd45 <- PrepSCTFindMarkers(fl_samples_DEG_noCd45)
+
+rm(fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45, fl_samples_E12.5_12May_named_subset_DEG_merge, fl_samples_E14.5_12May_named_subset_DEG_merge)
+```
+
+
+
+
+https://hbctraining.github.io/DGE_workshop/lessons/08_DGE_LRT.html
+
+```{r}
+# Extract corrected raw counts and metadata for creating a SingleCellExperiment object
+counts <- fl_samples_DEG_noCd45@assays$SCT@counts
+
+metadata <- fl_samples_DEG_noCd45@meta.data
+
+# Remove underscore from sample and sample_group names
+metadata$sample_id <- NA
+metadata$sample_id[which(str_detect(metadata$sample, "^FL_E10.5_rep_1"))] <- "FLE10.5rep1"
+metadata$sample_id[which(str_detect(metadata$sample, "^FL_E10.5_rep_2"))] <- "FLE10.5rep2"
+metadata$sample_id[which(str_detect(metadata$sample, "^FL_E12.5_rep_1"))] <- "FLE12.5rep1"
+metadata$sample_id[which(str_detect(metadata$sample, "^FL_E12.5_rep_2"))] <- "FLE12.5rep2"
+metadata$sample_id[which(str_detect(metadata$sample, "^FL_E14.5_rep_1"))] <- "FLE14.5rep1"
+metadata$sample_id[which(str_detect(metadata$sample, "^FL_E14.5_rep_2"))] <- "FLE14.5rep2"
+
+metadata$sample_grp <- NA
+metadata$sample_grp[which(str_detect(metadata$sample_group, "^FL_E10.5"))] <- "E10.5"
+metadata$sample_grp[which(str_detect(metadata$sample_group, "^FL_E12.5"))] <- "E12.5"
+metadata$sample_grp[which(str_detect(metadata$sample_group, "^FL_E14.5"))] <- "E14.5"
+
+
+#metadata$batch <- NA
+#metadata$batch[which(str_detect(metadata$sample, "^FL_E10.5_rep_1"))] <- "A"
+#metadata$batch[which(str_detect(metadata$sample, "^FL_E10.5_rep_2"))] <- "B"
+#metadata$batch[which(str_detect(metadata$sample, "^FL_E12.5_rep_1"))] <- "A"
+#metadata$batch[which(str_detect(metadata$sample, "^FL_E12.5_rep_2"))] <- "B"
+#metadata$batch[which(str_detect(metadata$sample, "^FL_E14.5_rep_1"))] <- "A"
+#metadata$batch[which(str_detect(metadata$sample, "^FL_E14.5_rep_2"))] <- "B"
+
+
+metadata <- metadata %>% 
+  as.data.frame() %>% 
+  dplyr::select(cluster_ident, sample_id, sample_grp) 
+
+metadata$cluster_ident <- factor(fl_samples_DEG_noCd45@active.ident)
+metadata$sample_id <- factor(metadata$sample_id)
+metadata$sample_grp <- factor(metadata$sample_grp)
+#metadata$batch <- factor(metadata$batch)
+
+# Create SingleCellExperiment object
+fl_samples_DEG_noCd45_sce  <- SingleCellExperiment(assays = list(counts = counts),
+                                            colData = metadata)
+
+```
+
+
+
+```{r}
+# Check assays present
+assays(fl_samples_DEG_noCd45_sce)
+
+# Check dimensions
+dim(counts(fl_samples_DEG_noCd45_sce))
+
+counts(fl_samples_DEG_noCd45_sce)[1:6, 1:6]
+```
+
+
+```{r}
+# Explore cellular metadata
+dim(colData(fl_samples_DEG_noCd45_sce))
+head(colData(fl_samples_DEG_noCd45_sce))
+```
+
+
+```{r}
+# Extract unique names of clusters
+cluster_names <- levels(colData(fl_samples_DEG_noCd45_sce)$cluster_ident)
+cluster_names
+
+# Extract unique names of clusters
+sample_names <- levels(colData(fl_samples_DEG_noCd45_sce)$sample_id)
+sample_names
+```
+
+```{r}
+# Subset metadata to include only the variables to aggregate across
+groups <- colData(fl_samples_DEG_noCd45_sce)[, c("cluster_ident", "sample_id")]
+head(groups)
+```
+
+```{r}
+# Aggregate across cluster-sample-batch groups
+# Transpose row/columns to have cell-ids as row names matching those of groups
+aggr_counts <- aggregate.Matrix(t(counts(fl_samples_DEG_noCd45_sce)), groupings = groups, fun = "sum")
+
+# Explore output matrix
+class(aggr_counts)
+dim(aggr_counts)
+aggr_counts[1:6, 1:6]
+```
+
+```{r}
+# Transpose aggregated matrix to have genes as rows and samples as columns
+aggr_counts <- t(aggr_counts)
+aggr_counts[1:6, 1:6]
+```
+
+
+```{r}
+# understand tstrsplit()
+
+# Look at the structure of function output
+tstrsplit(colnames(aggr_counts), "_") %>%  str()
+
+# Compare the first 10 elements of input and output strings
+head(colnames(aggr_counts), n = 10)
+head(tstrsplit(colnames(aggr_counts), "_")[[1]], n = 10)
+
+```
+
+```{r}
+# Loop over all cell types to extract corresponding counts and store the info in a list
+
+# Initiate empty list
+counts_ls <- list()
+
+for (i in 1:length(cluster_names)) {
+ 
+  # Extract indexes of columns in the global matrix that match a given cluster
+  column_idx <- which(tstrsplit(colnames(aggr_counts), "_")[[1]] == cluster_names[i])
+  
+  # Store corresponding sub-matrix as one element of a list
+  counts_ls[[i]] <- aggr_counts[ , column_idx]
+  names(counts_ls)[i] <- cluster_names[i]
+  
+}
+
+# Explore the different components of the list
+str(counts_ls)
+```
+
+
+```{r}
+# Explore structure of metadata
+head(colData(fl_samples_DEG_noCd45_sce))
+
+metadata <- colData(fl_samples_DEG_noCd45_sce) %>% 
+  as.data.frame() %>% 
+  dplyr::select(sample_id, sample_grp)
+
+
+
+dim(metadata)
+
+# Exclude duplicated rows
+metadata <- metadata[!duplicated(metadata), ]
+
+dim(metadata)
+head(metadata)
+```
+
+
+```{r}
+# Rename rows
+rownames(metadata) <- metadata$sample_id
+head(metadata)
+```
+
+
+```{r}
+# Number of cells per sample and cluster
+(ncells <- table(colData(fl_samples_DEG_noCd45_sce)$sample_id, colData(fl_samples_DEG_noCd45_sce)$cluster_ident))
+```
+
+```{r}
+# Creating metadata list
+
+## Initiate empty list
+metadata_ls <- list()
+
+for (i in 1:length(counts_ls)) {
+  ## Initiate a data frame for cluster i with one row per sample(matching names in the counts matrix)
+  df <- data.frame(cluster_sample_id = colnames(counts_ls[[i]]))
+  
+  ## Use tstrsplit() to separate cluster (cell type) and sample IDs
+  df$cluster_id <- tstrsplit(df$cluster_sample_id, "_")[[1]]
+  df$sample_id <- tstrsplit(df$cluster_sample_id, "_")[[2]]
+  
+  ## Retrieve cell count information for this cluster from global cell count table
+  idx <- which(colnames(ncells) == unique(df$cluster_id))
+  cell_counts <- ncells[, idx]
+  
+  ## Remove samples with zero cell contributing to the cluster
+  cell_counts <- cell_counts[cell_counts > 0]
+  
+  ## Match order of cell_counts and sample_ids
+  sample_order <- match(df$sample_id, names(cell_counts))
+  cell_counts <- cell_counts[sample_order]
+  
+  ## Append cell_counts to data frame
+  df$cell_count <- cell_counts
+  
+  
+  ## Join data frame (capturing metadata specific to cluster) to generic metadata
+  df <- plyr::join(df, metadata, 
+                   by = intersect(names(df), names(metadata)))
+
+  ## Update rownames of metadata to match colnames of count matrix, as needed later for DE
+  rownames(df) <- df$cluster_sample_id
+  
+  ## Store complete metadata for cluster i in list
+  metadata_ls[[i]] <- df
+  names(metadata_ls)[i] <- unique(df$cluster_id)
+  
+}
+
+## Explore the different components of the list
+str(metadata_ls)
+```
+
+
+```{r}
+# Select cell type of interest
+cluster_names
+
+# Double-check that both lists have same names
+all(names(counts_ls) == names(metadata_ls))
+```
+
+
+
+
+
+# DIFFERENTIAL EXPRESSION ANALYSIS OF ERYTHROBLASTS ACROSS TIMEPOINTS
+
+```{r}
+# Extract counts matrix and metadata for a specific cell type
+idx2 <- which(names(counts_ls) == "EP")
+cluster_counts2 <- counts_ls[[idx2]]
+cluster_metadata2 <- metadata_ls[[idx2]]
+
+# Check content of extracted object
+cluster_counts2[1:6, 1:6]
+head(cluster_metadata2)
+
+# Check matching of matrix columns and metadata rows
+all(colnames(cluster_counts2) == rownames(cluster_metadata2))
+```
+
+
+
+```{r}
+# Create DESeq2 object
+dds2 <- DESeqDataSetFromMatrix(cluster_counts2,
+                              colData = cluster_metadata2,
+                              design = ~ sample_grp)
+
+```
+
+
+```{r}
+# Transform counts for data visualization
+rld2 <- rlog(dds2, blind = FALSE)
+
+# Plot PCA
+#pdf("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_pca_sample_grp.pdf")
+DESeq2::plotPCA(rld2, ntop = 500, intgroup = "sample_grp")
+#dev.off()
+```
+
+
+
+```{r}
+#DESeq2::plotPCA(rld2, ntop = 500, intgroup = "batch")
+```
+
+
+
+
+```{r}
+set.seed(44)
+# Plot number of cells per sample
+#pdf("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/Erythb_pca_cellnumber_sample.pdf")
+DESeq2::plotPCA(rld2, ntop = 500, intgroup = "cell_count")
+#dev.off()
+```
+
+
+```{r}
+# Run DESeq2
+dds_lrt2 <- DESeq(dds2, test = "LRT", reduced = ~1)
+
+```
+```{r}
+saveRDS(dds_lrt2, "~/myproject/sc_analysis_project/msc_project/DE_analysis/results/dds_lrt2.rds")
+```
+
+
+
+
+```{r}
+# Plot dispersion estimates
+plotDispEsts(dds_lrt2)
+```
+
+
+
+```{r}
+# Check the coefficients for the comparison
+resultsNames(dds_lrt2)
+```
+
+
+```{r}
+# Generate results object
+res_LRT2 <- results(dds_lrt2)
+
+```
+
+
+
+```{r}
+# Turn the DESeq2 results object into a tibble for use with tidyverse functions
+res_tbl2 <- res_LRT2 %>% 
+  data.frame() %>% 
+  rownames_to_column(var = "gene") %>% 
+  as_tibble() %>% 
+  arrange(padj)# order genes by adjusted p-value
+
+# Check results output
+res_tbl2
+
+```
+
+
+
+```{r}
+# Set thresholds
+padj_cutoff <- 0.01
+
+# Subset the significant results
+sigLRT_genes2 <- dplyr::filter(res_tbl2, padj < padj_cutoff) %>% 
+  dplyr::arrange(padj)
+
+# Get number of significant genes
+nrow(sigLRT_genes2)
+
+# Check significant genes output
+sigLRT_genes2
+
+
+```
+
+
+```{r}
+# Transform counts for data visualization
+rld2<- rlog(dds_lrt2, blind = FALSE)
+
+#Extract the rlog matrix from the object and compute pairwise correlation values
+rld_mat2 <- assay(rld2)
+rld_cor2 <- cor(rld_mat2)
+
+# Obtain rlog values from those significant genes
+cluster_rlog2 <- rld_mat2[sigLRT_genes2$gene, ]
+cluster_meta_sig2 <- cluster_metadata2[which(rownames(cluster_metadata2) %in% colnames(cluster_rlog2)), ]
+
+# Use the 'degPatterns' function from DEGreport package to show gene clusters across sample groups
+#pdf("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/Erythb_dgePatterns.pdf")
+cluster_groups2 <- degPatterns(cluster_rlog2, 
+                               metadata = cluster_meta_sig2,
+                              time = "sample_grp",
+                              reduce = TRUE,
+                              col = NULL) 
+
+#dev.off()
+#cluster_groups2
+```
+
+```{r}
+cluster_groups2
+```
+
+
+
+
+
+```{r}
+cluster_groups2$plot +
+  theme(axis.text = element_text(size = 50),
+        plot.background = element_rect(fill = "white")) +
+        theme(axis.title.x = element_text(size =50, face = "bold")) +
+        theme(axis.title.y = element_text(size = 50, face = "bold"))
+
+  #geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 11, face = "bold")
+```
+
+
+
+
+```{r}
+# What is stored in the df component?
+cluster_groups2$df
+```
+
+
+```{r}
+# Revert name of Hbb.bh1 to Hbb-bh1. Do so for other genes. That is the format in the annotation dataframe
+
+cluster_groups2$df$genes <- cluster_groups2$df$genes %>% str_replace("[.]", "-")
+rownames(cluster_groups2$df) <- rownames(cluster_groups2$df) %>% str_replace("[.]", "-")
+
+# Remove X added to RIKEN genes by degPatterns function
+cluster_groups2$df$genes <- cluster_groups2$df$genes %>% str_replace("[X]", "")
+rownames(cluster_groups2$df) <- rownames(cluster_groups2$df) %>% str_replace("[X]", "")
+
+# Replace X in the following genes removed in the step above
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^Dancr-1"))] <- "Dancr.1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Dancr.1"))] <- "Dancr.1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^Hist2h2bb-1"))] <- "Hist2h2bb.1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Hist2h2bb.1"))] <- "Hist2h2bb.1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^rn2"))] <- "Xrn2"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xrn2"))] <- "Xrn2"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^po6"))] <- "Xpo6"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xpo6"))] <- "Xpo6"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^pot"))] <- "Xpot"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xpot"))] <- "Xpot"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^DHRS"))] <- "DHRSX"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^DHRSX"))] <- "DHRSX"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^rcc6bp1"))] <- "Xrcc6bp1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xrcc6bp1"))] <- "Xrcc6bp1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "rcc6$"))] <- "Xrcc6"
+#rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "Xrcc6$"))] <- "Xrcc6"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^rcc5"))] <- "Xrcc5"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xrcc5"))] <- "Xrcc5"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^rcc1"))] <- "Xrcc1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xrcc1"))] <- "Xrcc1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^po1"))] <- "Xpo1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xpo1"))] <- "Xpo1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^po7"))] <- "Xpo7"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xpo7"))] <- "Xpo7"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^ndc1"))] <- "Xndc1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xndc1"))] <- "Xndc1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^Gt-ROSA.26Sor"))] <- "Gt(ROSA)26Sor"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Gt(ROSA)26Sor"))] <- "Gt(ROSA)26Sor"
+
+#cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^Gt-ROSA.26Sor"))] <- "Gt.ROSA.26Sor"
+#rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Gt.ROSA.26Sor"))] <- "Gt.ROSA.26Sor"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^RP23-4H17.3"))] <- "RP23-4H17.3"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^RP23-4H17.3"))] <- "RP23-4H17.3"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^Atn1-1"))] <- "Atn1.1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Atn1.1"))] <- "Atn1.1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^xylt1"))] <- "Xxylt1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xxylt1"))] <- "Xxylt1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^kr8"))] <- "Xkr8"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xkr8"))] <- "Xkr8"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^af1"))] <- "Xaf1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xaf1"))] <- "Xaf1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^lr"))] <- "Xlr"
+#rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xlr"))] <- "Xlr"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^bp1"))] <- "Xbp1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xbp1"))] <- "Xbp1"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^ylt2"))] <- "Xylt2"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xylt2"))] <- "Xylt2"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^RP23-455C13-7"))] <- "RP23-455C13.7"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^RP23-455C13.7"))] <- "RP23-455C13.7"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^lr3a"))] <- "Xlr3a"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xlr3a"))] <- "Xlr3a"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^lr3b"))] <- "Xlr3b"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Xlr3b"))] <- "Xlr3b"
+
+cluster_groups2$df$genes[which(str_detect(rownames(cluster_groups2$df), "^Tex19-1"))] <- "Tex19.1"
+rownames(cluster_groups2$df)[which(str_detect(cluster_groups2$df$genes, "^Tex19.1"))] <- "Tex19.1"
+
+
+# Filter dataframe into the 4 groups of genes
+EP_downgene_group1 <- cluster_groups2$df %>% 
+  dplyr::filter(cluster == 1) 
+
+EP_upgene_group2 <- cluster_groups2$df %>% 
+  dplyr::filter(cluster == 2) 
+
+EP_downupgene_group3 <- cluster_groups2$df %>% 
+  dplyr::filter(cluster == 3) 
+
+EP_updowngene_group4 <- cluster_groups2$df %>% 
+  dplyr::filter(cluster == 4) 
+```
+
+
+
+```{r}
+# Save group genes and significant genes
+write.csv(res_tbl2,
+          paste0(here("DE_analysis/results/", "EP_gene_results_tbl.csv"))) # All EP genes tested for DE
+write.csv(sigLRT_genes2,
+          paste0(here("DE_analysis/results/", "EP_LRT_signif_genes.csv")))
+write.csv(EP_downgene_group1,
+          paste0(here("DE_analysis/results/", "EP_downgene_group1.csv")))
+write.csv(EP_upgene_group2,
+          paste0(here("DE_analysis/results/", "EP_upgene_group2.csv")))
+write.csv(EP_downupgene_group3,
+          paste0(here("DE_analysis/results/", "EP_downupgene_group3.csv")))
+write.csv(EP_updowngene_group4,
+          paste0(here("DE_analysis/results/", "EP_updowngene_group4.csv")))
+```
+
+
+
+
+```{r}
+# Heatmap of significant genes
+
+## Extract normalized counts from dds_lrt2 object
+normalized_counts2 <- counts(dds_lrt2, normalized = TRUE)
+
+
+# Extract normalized counts for significant genes only
+sig_cnts2 <- normalized_counts2[rownames(normalized_counts2) %in% sigLRT_genes2$gene, ]
+
+heat_colors <- rev(brewer.pal(11, "PuOr"))
+
+# Run pheatmap using the metadata data frame for the annotation
+#pdf("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/Erythb_sig_heatmap.pdf")
+pheatmap(sig_cnts2,
+         color = heat_colors,
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         show_rownames = FALSE,
+         annotation_col = cluster_metadata2[, c("sample_grp", "cluster_id")],
+         border_color = NA,
+         fontsize = 10,
+         angle_col = "45",
+         scale = "row",
+         fontsize_row = 10)
+#dev.off()
+
+# Subset significant genes to only genes in each of the EP groups
+EP_downgene_group1_sig_genes <- sigLRT_genes2 %>% 
+  dplyr::filter(sigLRT_genes2$gene %in% EP_downgene_group1$genes) %>% 
+  dplyr::arrange(padj)
+
+# Extract normalized counts for group1 genes
+EP_downgene_group1_normcnts <- normalized_counts2[rownames(normalized_counts2) %in% EP_downgene_group1_sig_genes[1:50, ]$gene, ]
+
+# Set a color-blind friendly palette
+heat_colors <- rev(brewer.pal(11, "PuOr"))
+
+# Run pheatmap using the metadata data frame for the annotation
+#pdf("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_group1_heatmap.pdf")
+pheatmap(EP_downgene_group1_normcnts,
+         color = heat_colors,
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         show_rownames = TRUE,
+         annotation_col = cluster_metadata2[, c("sample_grp", "cluster_id")],
+         border_color = NA,
+         fontsize = 10,
+         angle_col = "45",
+         scale = "row",
+         fontsize_row = 10)
+#dev.off()
+
+# Subset significant genes to only genes in the second EP group
+EP_upgene_group2_sig_genes <- sigLRT_genes2 %>% 
+  dplyr::filter(sigLRT_genes2$gene %in% EP_upgene_group2$genes) %>% 
+  dplyr::arrange(padj)
+
+# Extract normalized counts for group2 genes
+EP_upgene_group2_normcnts <- normalized_counts2[rownames(normalized_counts2) %in% EP_upgene_group2_sig_genes[1:50, ]$gene, ]
+
+# Set a color-blind friendly palette
+heat_colors <- rev(brewer.pal(11, "PuOr"))
+
+# Run pheatmap using the metadata data frame for the annotation
+#pdf("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_group2_heatmap.pdf")
+pheatmap(EP_upgene_group2_normcnts,
+         color = heat_colors,
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         show_rownames = TRUE,
+         annotation_col = cluster_metadata2[, c("sample_grp", "cluster_id")],
+         border_color = NA,
+         fontsize = 10,
+         angle_col = "45",
+         scale = "row",
+         fontsize_row = 10)
+#dev.off()
+
+# Subset significant genes to only genes in the third groups
+EP_downupgene_group3_sig_genes <- sigLRT_genes2 %>% 
+  dplyr::filter(sigLRT_genes2$gene %in% EP_downupgene_group3$genes) %>% 
+  dplyr::arrange(padj)
+
+# Extract normalized counts for group3 genes
+EP_downupgene_group3_normcnts <- normalized_counts2[rownames(normalized_counts2) %in% EP_downupgene_group3_sig_genes[1:50, ]$gene, ]
+
+# Set a color-blind friendly palette
+heat_colors <- rev(brewer.pal(11, "PuOr"))
+
+# Run pheatmap using the metadata data frame for the annotation
+#pdf("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_group3_heatmap.pdf")
+pheatmap(EP_downupgene_group3_normcnts,
+         color = heat_colors,
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         show_rownames = TRUE,
+         annotation_col = cluster_metadata2[, c("sample_grp", "cluster_id")],
+         border_color = NA,
+         fontsize = 10,
+         angle_col = "45",
+         scale = "row",
+         fontsize_row = 10)
+#dev.off()
+
+# Subset significant genes to only genes in the fourth group
+EP_updowngene_group4_sig_genes <- sigLRT_genes2 %>% 
+  dplyr::filter(sigLRT_genes2$gene %in% EP_updowngene_group4$genes) %>% 
+  dplyr::arrange(padj)
+
+# Extract normalized counts for group4 genes
+EP_updowngene_group4_normcnts <- normalized_counts2[rownames(normalized_counts2) %in% EP_updowngene_group4_sig_genes[1:50, ]$gene, ]
+
+# Set a color-blind friendly palette
+heat_colors <- rev(brewer.pal(11, "PuOr"))
+
+# Run pheatmap using the metadata data frame for the annotation
+#pdf("~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/Erythb_group4_heatmap.pdf")
+pheatmap(EP_updowngene_group4_normcnts,
+         color = heat_colors,
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         show_rownames = TRUE,
+         annotation_col = cluster_metadata2[, c("sample_grp", "cluster_id")],
+         border_color = NA,
+         fontsize = 10,
+         angle_col = "45",
+         scale = "row",
+         fontsize_row = 10)
+#dev.off()
+
+```
+
+
+
+```{r}
+# Extract top 100 genes for group1 genes
+EP_downgene_group1_top300 <- EP_downgene_group1_sig_genes[1:300, ]$gene
+EP_downgene_group1_top100 <- EP_downgene_group1_sig_genes[1:100, ]$gene
+EP_downgene_group1_top50 <- EP_downgene_group1_sig_genes[1:50, ]$gene
+
+EP_upgene_group2_top300 <- EP_upgene_group2_sig_genes[1:300, ]$gene
+EP_upgene_group2_top500 <- EP_upgene_group2_sig_genes[1:500, ]$gene
+EP_upgene_group2_top100 <- EP_upgene_group2_sig_genes[1:100, ]$gene
+EP_upgene_group2_top50 <- EP_upgene_group2_sig_genes[1:50, ]$gene
+```
+
+
+```{r}
+#dir.create("~/myproject/sc_analysis_project/msc_project/DE_analysis/data/")
+# Save fetal sample merged object used in DEG analysis across E10.5, E12.5 and E14.5
+saveRDS(fl_samples_DEG_noCd45, "~/myproject/sc_analysis_project/msc_project/DE_analysis/data/fl_samples_DEG_noCd45.rds") #save first to upload to my drive
+
+# Save new fetal sample object with SCT counts used in DEG analysis across E10.5, E12.5 and E14.5
+saveRDS(fl_samples_DEG_noCd45_sce, "~/myproject/sc_analysis_project/msc_project/DE_analysis/data/fl_samples_DEG_noCd45_sce.rds")
+```
+
+
+```{r}
+# Save top 200 and 100 genes in up- and down-regulated gene groups for more meaningful functional results according to Metascape team
+write.csv(EP_downgene_group1_top300,
+          paste0(here("DE_analysis/results/", "EP_downgene_group1_top300.csv")))
+
+write.csv(EP_downgene_group1_top100,
+          paste0(here("DE_analysis/results/", "EP_downgene_group1_top100.csv")))
+
+write.csv(EP_downgene_group1_top50,
+          paste0(here("DE_analysis/results/", "EP_downgene_group1_top50.csv")))
+
+write.csv(EP_upgene_group2_top300,
+          paste0(here("DE_analysis/results/", "EP_upgene_group2_top300.csv")))
+
+write.csv(EP_upgene_group2_top100,
+          paste0(here("DE_analysis/results/", "EP_upgene_group2_top100.csv")))
+
+write.csv(EP_upgene_group2_top50,
+          paste0(here("DE_analysis/results/", "EP_upgene_group2_top50.csv")))
+
+```
+
+
+
+
+# GO ANALYSIS OF DIFFERENTIALLY EXPRESSED ERYTHROID PROGENITOR GENES. I did pathway enrichment instead
+
+```{r}
+# Load libraries
+library(clusterProfiler)
+library(msigdbr)
+library(GOplot)
+```
+
+
+
+```{r}
+# Extract databases of interest
+msigdbr_df1 <- msigdbr(species = "mouse", category = "C2", subcategory = "CP:REACTOME")
+msigdbr_df2 <- msigdbr(species = "mouse", category = "C5", subcategory = "GO:BP")
+
+
+# Extract columns of interest(gene set name and gene symbol)
+# Reactome Pathways
+msigdbr_t2g1 <- msigdbr_df1 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+# Biological Processes
+msigdbr_t2g2 <- msigdbr_df2 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
+```
+
+
+
+```{r}
+# ENRICHER
+# Up_regulated genes
+EP_downgene_group1_top300_Reactome <- enricher(gene = EP_downgene_group1_top300, TERM2GENE = msigdbr_t2g1) 
+EP_downgene_group1_top300_Reactome@result$Description <- EP_downgene_group1_top300_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+EP_downgene_group1_top300_BP <- enricher(gene = EP_downgene_group1_top300, TERM2GENE = msigdbr_t2g2) 
+EP_downgene_group1_top300_BP@result$Description <- EP_downgene_group1_top300_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for up-regulated genes (top 10 significant terms)
+
+# Plot up-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_downgene_group1_top300_Reactome.pdf", width = 15, height = 15)
+a <- barplot(EP_downgene_group1_top300_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - downreg. genes in E12.5 and E14.5 EP", label_format = 30)
+a
+#dev.off()
+
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_downgene_group1_top300_BP.pdf", width = 15, height = 15)
+a <- barplot(EP_downgene_group1_top300_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30)
+a
+#dev.off()
+```
+
+
+```{r}
+# ENRICHER
+# Down_regulated genes
+EP_upgene_group2_top300_Reactome <- enricher(gene = EP_upgene_group2_top300, TERM2GENE = msigdbr_t2g1)
+EP_upgene_group2_top300_Reactome@result$Description <- EP_upgene_group2_top300_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
+
+
+EP_upgene_group2_top300_BP <- enricher(gene = EP_upgene_group2_top300, TERM2GENE = msigdbr_t2g2)
+EP_upgene_group2_top300_BP@result$Description <- EP_upgene_group2_top300_BP@result$Description %>% str_replace_all("GOBP_", "")
+```
+
+
+# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
+```{r}
+# Select terms of interest for down-regulated genes (top 10 significant terms)
+
+# Plot down-regulated genes
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_upgene_group2_top300_Reactome.pdf", width = 15, height = 15)
+a <- barplot(EP_upgene_group2_top300_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30)
+a
+#dev.off()
+
+#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_upgene_group2_top300_BP.pdf", width = 15, height = 15)
+a <- barplot(EP_upgene_group2_top300_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30)
+a
+#dev.off()
+```
+
+
+
+
+REMEMBER TO LIST THESE GENES BELOW ON YOUR SLIDES AND SHOW PLOTS OF SOME OF THEM
+
+
+```{r}
+# Top300 down-regulated genes enriched terms
+PLATELET_ACTIVATION_SIGNALING_AND_AGGREGATION - Tmsb4x/Rasgrp2/Gng2/Itga2b/Lat/Gng12/Cd63/Grb2/Lyn/Plcg2/Pf4/Fcer1g/Phactr2/Gnaq/Syk/Gp1bb/Prkcq/Sparc/Itgb3/Plek/Rab27b/Flna/Pecam1/Timp3/Cd9/Vav1/Gna15
+RESPONSE_TO_ELEVATED_PLATELET_CYTOSOLIC_CA2 - Tmsb4x/Itga2b/Cd63/Pf4/Phactr2/Sparc/Itgb3/Plek/Rab27b/Flna/Pecam1/Timp3/Cd9
+
+# Top300 up-regulated genes enriched terms
+#erythrocyte homeostasis - Ampd3|Epb42|Dmtn|Klf1|Rb1|Rhd|Trim10|Sox6|Tmem14c|Fam210b|Tspo2|Slc25a38
+#porphyrin-containing compound metabolic process - Hebp1|Hmbs|Ppox|Spta1|Sptb|Uros|Tmem14c
+#cellular response to copper ion - Aqp1|Mt2|Nfe2l2|Prnp|Snca
+```
+
+
+
+
+
+
+
+```{r}
+cols_sample_group <- c( "#F6222E", "dodgerblue3", "#1C8356")
+
+# Key megakaryocyte genes down-regulated in E12.5 and E14.5 erythroid progenitors only
+#par(mfrow=c(1,3))
+a <- VlnPlot(fl_samples_DEG_noCd45, features = c("Rasgrp2"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 40)) +
+            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            theme(plot.title = element_text(size = 40, face = "bold")) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_text(size = 40, face = "bold"))
+ 
+
+b <- VlnPlot(fl_samples_DEG_noCd45, features = c("Gp1bb"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 40)) +
+            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            theme(plot.title = element_text(size = 40, face = "bold")) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank())
+
+
+c <- VlnPlot(fl_samples_DEG_noCd45, features = c("Plek"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 40)) +
+            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            theme(plot.title = element_text(size = 40, face = "bold")) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank())
+
+d <- VlnPlot(fl_samples_DEG_noCd45, features = c("Pf4"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 40)) +
+            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            theme(plot.title = element_text(size = 40, face = "bold")) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank())
+ 
+a|b|c|d
+
+ggsave("platelet_activation_signaling_aggregation.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures",
+       width = 17, height = 15, device = "tiff", dpi = 300)
+```
+
+
+```{r}
+cols_sample_group <- c( "#F6222E", "dodgerblue3", "#1C8356")
+
+# Key erthroid genes up-regulated in E12.5 and E14.5 erythroid progenitors
+#par(mfrow=c(1,3))
+a <- VlnPlot(fl_samples_DEG_noCd45, features = c("Klf1"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 40)) +
+            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            theme(plot.title = element_text(size = 40, face = "bold")) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_text(size = 40, face = "bold"))
+ 
+
+b <- VlnPlot(fl_samples_DEG_noCd45, features = c("Sox6"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 40)) +
+            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            theme(plot.title = element_text(size = 40, face = "bold")) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank())
+
+
+c <- VlnPlot(fl_samples_DEG_noCd45, features = c("Epb42"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 40)) +
+            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            theme(plot.title = element_text(size = 40, face = "bold")) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank())
+
+d <- VlnPlot(fl_samples_DEG_noCd45, features = c("Tmem14c"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 40)) +
+            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            theme(plot.title = element_text(size = 40, face = "bold")) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank())
+ 
+a|b|c|d
+
+ggsave("erythrocyte homeostasis.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures",
+       width = 17, height = 15, device = "tiff", dpi = 300)
+```
+
+
+
+# USE CellXY TO INFER SEX OF CELLS
+
+
+```{r}
+# Rename original seurat object to prevent tampering with it
+fl_samples_DEG_noCd45_sex <- fl_samples_DEG_noCd45
+```
+
+
+
+# Determine sex of erythroid progenitors using cellXY
+```{r}
+library(cellXY)
+library(speckle)
+library(SingleCellExperiment)
+library(CellBench)
+library(org.Mm.eg.db)
+library(caret)
+library(randomForest)
+
+fl_samples_DEG_noCd45_sex_counts <- fl_samples_DEG_noCd45_sex@assays$RNA@counts
+ann <- AnnotationDbi::select(org.Mm.eg.db, keys=rownames(fl_samples_DEG_noCd45_sex),
+              columns=c("ENSEMBL","SYMBOL"), keytype="SYMBOL")
+```
+
+
+```{r}
+# How many Ensembl identifiers have an associated gene symbol
+which(is.na(ann$ENSEMBL)) %>% length()
+
+# How many of them are unique
+which(duplicated(ann$ENSEMBL)) %>% length()
+
+# Determine the indices for the non-NA genes
+non_na_idx <- !is.na(ann$ENSEMBL)
+non_duplicated_idx <- which(duplicated(ann$ENSEMBL) == FALSE)
+
+# How many rows does annotations have?
+ann %>% nrow()
+
+# Return only the non-duplicated genes using the indices
+ann <- ann[non_na_idx, ]
+ann <- ann[non_duplicated_idx, ]
+
+# How many rows does annotations now have?
+ann %>% nrow()
+
+
+m <- match(rownames(fl_samples_DEG_noCd45_sex_counts), ann$SYMBOL)
+rownames(fl_samples_DEG_noCd45_sex_counts) <- ann$SYMBOL[m]
+```
+
+
+
+```{r}
+fl_samples_DEG_noCd45_sex_counts <- fl_samples_DEG_noCd45_sex@assays$RNA@counts
+sex <- classifySex(fl_samples_DEG_noCd45_sex_counts, genome="Mm")
+table(sex$prediction)
+```
+Female   Male     NA 
+  7264   6937    391
+
+  
+```{r}
+sex <- rownames_to_column(sex, var = "cells")
+metadata <- fl_samples_DEG_noCd45_sex@meta.data
+metadata <- left_join(metadata, sex, by = "cells")
+
+na_sex <- dplyr::filter(metadata, prediction == "NA")
+nrow(na_sex)
+
+fl_samples_DEG_noCd45_sex@meta.data <- metadata
+rownames(fl_samples_DEG_noCd45_sex@meta.data) <- fl_samples_DEG_noCd45_sex@meta.data$cells
+table(fl_samples_DEG_noCd45_sex$sample_group, fl_samples_DEG_noCd45_sex$prediction)
+fl_samples_DEG_noCd45_sex$prediction <- factor(fl_samples_DEG_noCd45_sex$prediction)
+```
+   [1] 391
+          
+           Female Male   NA
+  FL_E10.5   1243 1861  152
+  FL_E12.5   3039 3117   83
+  FL_E14.5   2982 1959  156
+
+
+```{r}
+fl_samples_DEG_noCd45_sex@meta.data <- fl_samples_DEG_noCd45_sex@meta.data %>% 
+  mutate(
+    sex = case_when(
+  prediction == "Female" ~ "Female", 
+  prediction == "Male" ~ "Male",
+  prediction == "NA" ~ "unknown"
+))
+
+fl_samples_DEG_noCd45_sex$sex <- factor(fl_samples_DEG_noCd45_sex$sex)  
+  
+table(fl_samples_DEG_noCd45_sex$sample_group, fl_samples_DEG_noCd45_sex$sex)
+```
+
+          Female Male unknown
+  FL_E10.5   1243 1861     152
+  FL_E12.5   3039 3117      83
+  FL_E14.5   2982 1959     156
+
+
+
+```{r}
+str(fl_samples_DEG_noCd45_sex)
+head(fl_samples_DEG_noCd45_sex@meta.data)
+
+```
+
+
+## Specify colours
+
+```{r}
+ggplotColours <- function(n = 6, h = c(0, 360) + 15){
+  if ((diff(h) %% 360) < 1) h[2] <- h[2] - 360/n
+  hcl(h = (seq(h[1], h[2], length = n)), c = 100, l = 65)
+}
+
+color_list <- ggplotColours(n=25)
+
+mycols <- c("#CF9400", "#7997FF", "#AC88FF")
+
+#[1] "#F8766D" "#ED8141" "#E08B00" "#CF9400" "#BB9D00" "#A3A500" "#85AD00" "#5BB300" "#00B81F" "#00BC59" "#00BF7D" "#00C19C" "#00C0B8" "#00BDD0" "#00B8E5" "#00B0F6" "#00A5FF"
+#[18] "#7997FF" "#AC88FF" "#CF78FF" "#E76BF3" "#F763E0" "#FF61C9" "#FF65AE" "#FF6C90"
+```
+
+
+
+```{r}
+# Save the new seurat object with inferred sex of cells
+saveRDS(fl_samples_DEG_noCd45_sex, "~/myproject/sc_analysis_project/msc_project/DE_analysis/data/fl_samples_DEG_noCd45_sex.rds")
+```
+
+
+
+```{r}
+
+fl_samples_DEG_noCd45_sex <- readRDS("~/myproject/sc_analysis_project/msc_project/DE_analysis/data/fl_samples_DEG_noCd45_sex.rds")
+# Read in gene lists
+EP_downgene_group1_top300 <- read_csv(here("DE_analysis/results/", "EP_downgene_group1_top300.csv"))
+EP_upgene_group2_top300 <- read_csv(here("DE_analysis/results/", "EP_upgene_group2_top300.csv"))
+```
+
+
+
+# TRANSCRIPTION FACTOR ENRICHMENT ANALYSIS USING SCENIC
+
+# Run the analysis on Compute Canada
+# Use the Rscript ~/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/computecanadascenicEP1.R
+# This analysis was run long before sex was inferred, so the seurat object used didn't have the sex column in the metadata
+
+
+```{r}
+# Read in already saved scenicOptions object (computed on Compute Canada)
+scenicOptions_EP1 <- readRDS("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/int/scenicOptions_EP1.rds")
+EP_downgene_group1_cellInfo <- readRDS("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/int/EP_downgene_group1_cellInfo.rds")
+scenicOptions_EP1@inputDatasetInfo$cellInfo <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/int/EP_downgene_group1_cellInfo.rds"
+scenicOptions_EP1@settings$dbDir <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1"
+```
+
+
+
+```{r}
+# Add sex column to cellInfo
+# Add a column for joining
+EP_downgene_group1_cellInfo <- EP_downgene_group1_cellInfo %>% dplyr::mutate(cells = rownames(EP_downgene_group1_cellInfo))
+
+# Extract seurat metadata for easy manipulation and select relevant columns
+fl_samples_DEG_noCd45_sex_meta <- fl_samples_DEG_noCd45_sex@meta.data
+fl_samples_DEG_noCd45_sex_meta <- fl_samples_DEG_noCd45_sex_meta %>% dplyr::select(cells, sex)
+
+# Add sex column to cellInfo object
+EP_downgene_group1_cellInfo <- left_join(EP_downgene_group1_cellInfo, fl_samples_DEG_noCd45_sex_meta, by = "cells")
+EP_downgene_group1_cellInfo <- EP_downgene_group1_cellInfo %>% column_to_rownames("cells")
+```
+
+
+```{r}
+# Save cellInfo
+saveRDS(EP_downgene_group1_cellInfo, "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/int/EP_downgene_group1_cellInfo_withsex.rds")
+```
+
+
+
+```{r}
+# Add cellInfo to scenicOptions object
+scenicOptions_EP1@inputDatasetInfo$cellInfo <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/int/EP_downgene_group1_cellInfo_withsex.rds"
+```
+
+
+
+```{r}
+setwd("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1")
+set.seed(181)
+regulons <- loadInt(scenicOptions_EP1, "regulons")
+
+regulonAUC <- loadInt(scenicOptions_EP1, "aucell_regulonAUC")
+
+# Extract AUC scores of regulons 
+regulon_auc_score_EP1 <- getAUC(regulonAUC)
+
+regulonAUC <- regulonAUC[onlyNonDuplicatedExtended(rownames(regulonAUC)),]
+regulonActivity_bySample_group <- sapply(split(rownames(EP_downgene_group1_cellInfo), EP_downgene_group1_cellInfo$sample_grp),
+                                     function(allcells) rowMeans(getAUC(regulonAUC)[,allcells]))
+regulonActivity_bySample_group_Scaled <- t(scale(t(regulonActivity_bySample_group), center = T, scale=T))
+
+
+cols_sample_group <- c(E10.5 = "#CF9400", E12.5 = "#7997FF", E14.5 = "#AC88FF")
+
+
+annotation_col <-  data.frame(Cluster=unique(EP_downgene_group1_cellInfo$cluster_ident),
+                              Timepoint=unique(EP_downgene_group1_cellInfo$sample_grp))
+                              #Sex=EP_downgene_group1_cellInfo$sex)
+annotation_colors <- list(Timepoint=cols_sample_group)
+
+rownames(regulonActivity_bySample_group_Scaled) <- gsub("_extended", "", rownames(regulonActivity_bySample_group_Scaled))
+                                        
+
+#pdf(file="/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/EP_downgene_group1_heatmap.pdf", width = 25, height =25)
+heat1 <- ComplexHeatmap::Heatmap(regulonActivity_bySample_group_Scaled, name="Regulon act.",
+                        cluster_columns = FALSE,
+                        show_column_dend = FALSE,
+                        cluster_column_slices = FALSE,
+                        #column_title_gp = gpar(fontsize = 8),
+                        #column_gap = unit(0.5, "mm"),
+                        row_names_gp = gpar(fontsize = 25),
+                        cluster_rows = TRUE,
+                        show_row_dend = FALSE,
+                        #col = viridisLite::viridis(length(mat_breaks) - 1),
+                        #row_names_gp = gpar(fonsize = 4),
+                        column_title_rot = 45,
+                        top_annotation = HeatmapAnnotation(df = annotation_col, col = annotation_colors, show_legend = TRUE, show_annotation_name = FALSE, annotation_legend_param = list(labels_gp = gpar(fontsize = 30),  title_gp = gpar(fontsize = 30, fontface = "bold"))),
+                        show_column_names = FALSE,
+                         heatmap_legend_param = list(labels_gp = gpar(fontsize = 30), title_gp = gpar(fontsize = 30, fontface = "bold")),
+                        width = 25,
+                        height = 25,
+                        use_raster = TRUE,
+                        raster_quality = 4)
+draw(heat1)
+#dev.off()
+
+```
+
+
+
+```{r}
+regulon_auc_score_EP1 <- as.data.frame(regulon_auc_score_EP1)
+rownames(regulon_auc_score_EP1) <- gsub("_extended", "", rownames(regulon_auc_score_EP1))
+
+# Create a Seurat object 
+EP1_scenic_seurat <- CreateSeuratObject(counts = as.matrix(regulon_auc_score_EP1),
+                                                   meta.data = EP_downgene_group1_cellInfo)
+```
+
+
+
+```{r}
+VlnPlot(EP1_scenic_seurat, features = c("Spi1 (224g)"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + 
+labs(y = "Regulon activity score") + 
+NoLegend()
+
+VlnPlot(Ery1_scenic_seurat, features = c("Gata1 (114g)"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + 
+labs(y = "Regulon activity score") + 
+NoLegend()
+
+VlnPlot(Ery1_scenic_seurat, features = c("Sox6 (18g)"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + 
+labs(y = "Regulon activity score") + 
+NoLegend()
+
+VlnPlot(Ery1_scenic_seurat, features = c("Nfia (10g)"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + 
+labs(y = "Regulon activity score") + 
+NoLegend()
+
+#Mk_gene_group1_seurat[["scenic_regulon_auc_score"]] <- CreateAssayObject(data =  regulon_auc_score)"Gata1 (36g)",,"Sox6 (16g)"
+```
+
+
+# Check expression levels of key genes in the up- and down-regulated groups
+```{r}
+Erythroblast_upgene_group1_expression <- fl_samples_deg_sce[Erythroblast_upgene_group1$genes, fl_samples_deg_sce$cluster_ident == "Erythroblast"]
+Erythroblast_downgene_group2_expression <- fl_samples_deg_sce[Erythroblast_downgene_group2$genes, fl_samples_deg_sce$cluster_ident == "Erythroblast"]
+```
+
+
+
+```{r}
+cols_sample_group <- c(E10.5 = "#CF9400", E12.5 = "#7997FF", E14.5 = "#AC88FF")
+
+Ery1_seurat_geneExp <- CreateSeuratObject(counts = counts(Erythroblast_upgene_group1_expression),
+                                                   meta.data = Erythroblast_upgene_group1_cellInfo)
+
+# Key erthroid genes upregulated
+#par(mfrow=c(1,3))
+a <- VlnPlot(fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45, features = c("Tfrc"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+ 
+
+b <- VlnPlot(fl_samples_E12.5_12May_named_subset_DEG_merge, features = c("Tfrc"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+
+
+c <- VlnPlot(fl_samples_E14.5_12May_named_subset_DEG_merge, features = c("Cd24a"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+ 
+a|b|c
+
+d <- VlnPlot(fl_samples_E14.5_12May_named_subset_DEG_merge, features = c("Fli1"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+ 
+a|b
+c|d
+```
+
+
+
+```{r}
+# Key erythroid genes downrelated
+
+a <- VlnPlot(Ery1_seurat_geneExp, features = c("Hbb-y"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+ 
+
+b <- VlnPlot(Ery1_seurat_geneExp, features = c("Hbb-bh1"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+
+
+c <- VlnPlot(Ery1_seurat_geneExp, features = c("Hba-x"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
+  theme(axis.text.x = element_text(face = "bold", size = 50)) +
+            theme(axis.text.y = element_text(face = "bold", size = 50)) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.title.x = element_text(size = 50, face = "bold")) +
+            theme(axis.title.y = element_text(size = 50, face = "bold"))
+ 
+a|b|c
+
+
+
+
+
+
+
+
+
+
+
+## EP_upgene_group2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
