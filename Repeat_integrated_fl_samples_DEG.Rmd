@@ -1266,94 +1266,144 @@ Erythroblast_downgene_group2_expression <- fl_samples_deg_sce[Erythroblast_downg
 
 
 
-```{r}
-cols_sample_group <- c(E10.5 = "#CF9400", E12.5 = "#7997FF", E14.5 = "#AC88FF")
-
-Ery1_seurat_geneExp <- CreateSeuratObject(counts = counts(Erythroblast_upgene_group1_expression),
-                                                   meta.data = Erythroblast_upgene_group1_cellInfo)
-
-# Key erthroid genes upregulated
-#par(mfrow=c(1,3))
-a <- VlnPlot(fl_samples_E10.5_12May_named_subset_DEG_merge_noCd45, features = c("Tfrc"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
-  theme(axis.text.x = element_text(face = "bold", size = 50)) +
-            theme(axis.text.y = element_text(face = "bold", size = 50)) +
-            theme(plot.title = element_text(size = 50, face = "bold")) +
-            theme(axis.title.x = element_text(size = 50, face = "bold")) +
-            theme(axis.title.y = element_text(size = 50, face = "bold"))
- 
-
-b <- VlnPlot(fl_samples_E12.5_12May_named_subset_DEG_merge, features = c("Tfrc"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
-  theme(axis.text.x = element_text(face = "bold", size = 50)) +
-            theme(axis.text.y = element_text(face = "bold", size = 50)) +
-            theme(plot.title = element_text(size = 50, face = "bold")) +
-            theme(axis.title.x = element_text(size = 50, face = "bold")) +
-            theme(axis.title.y = element_text(size = 50, face = "bold"))
-
-
-c <- VlnPlot(fl_samples_E14.5_12May_named_subset_DEG_merge, features = c("Cd24a"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
-  theme(axis.text.x = element_text(face = "bold", size = 50)) +
-            theme(axis.text.y = element_text(face = "bold", size = 50)) +
-            theme(plot.title = element_text(size = 50, face = "bold")) +
-            theme(axis.title.x = element_text(size = 50, face = "bold")) +
-            theme(axis.title.y = element_text(size = 50, face = "bold"))
- 
-a|b|c
-
-d <- VlnPlot(fl_samples_E14.5_12May_named_subset_DEG_merge, features = c("Fli1"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
-  theme(axis.text.x = element_text(face = "bold", size = 50)) +
-            theme(axis.text.y = element_text(face = "bold", size = 50)) +
-            theme(plot.title = element_text(size = 50, face = "bold")) +
-            theme(axis.title.x = element_text(size = 50, face = "bold")) +
-            theme(axis.title.y = element_text(size = 50, face = "bold"))
- 
-a|b
-c|d
-```
-
-
-
-```{r}
-# Key erythroid genes downrelated
-
-a <- VlnPlot(Ery1_seurat_geneExp, features = c("Hbb-y"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
-  theme(axis.text.x = element_text(face = "bold", size = 50)) +
-            theme(axis.text.y = element_text(face = "bold", size = 50)) +
-            theme(plot.title = element_text(size = 50, face = "bold")) +
-            theme(axis.title.x = element_text(size = 50, face = "bold")) +
-            theme(axis.title.y = element_text(size = 50, face = "bold"))
- 
-
-b <- VlnPlot(Ery1_seurat_geneExp, features = c("Hbb-bh1"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
-  theme(axis.text.x = element_text(face = "bold", size = 50)) +
-            theme(axis.text.y = element_text(face = "bold", size = 50)) +
-            theme(plot.title = element_text(size = 50, face = "bold")) +
-            theme(axis.title.x = element_text(size = 50, face = "bold")) +
-            theme(axis.title.y = element_text(size = 50, face = "bold"))
-
-
-c <- VlnPlot(Ery1_seurat_geneExp, features = c("Hba-x"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
-  theme(axis.text.x = element_text(face = "bold", size = 50)) +
-            theme(axis.text.y = element_text(face = "bold", size = 50)) +
-            theme(plot.title = element_text(size = 50, face = "bold")) +
-            theme(axis.title.x = element_text(size = 50, face = "bold")) +
-            theme(axis.title.y = element_text(size = 50, face = "bold"))
- 
-a|b|c
-
-
-
-
-
-
-
 
 
 
 
 ## EP_upgene_group2
 
+REPEAT SCENIC ON EP_upgene_group2
 
 
+
+
+
+```{r}
+# Read in the new seurat object with inferred sex of cells
+fl_samples_DEG_noCd45_sex <- readRDS("~/myproject/sc_analysis_project/msc_project/DE_analysis/data/fl_samples_DEG_noCd45_sex.rds")
+```
+
+
+
+
+```{r}
+# Copy object
+fl_samples_DEG_noCd45_sex_proliferation <- fl_samples_DEG_noCd45_sex
+```
+
+
+```{r}
+# SCTransform the merged Ery object
+DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation) <- "RNA"
+fl_samples_DEG_noCd45_sex_proliferation <- SCTransform(fl_samples_DEG_noCd45_sex_proliferation,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+```{r}
+fl_samples_DEG_noCd45_sex_proliferation <- PrepSCTFindMarkers(fl_samples_DEG_noCd45_sex_proliferation)
+```
+
+
+```{r}
+VariableFeatures(fl_samples_DEG_noCd45_sex_proliferation[["integrated"]]) <- rownames(fl_samples_DEG_noCd45_sex_proliferation[["SCT"]]@scale.data)
+```
+
+
+
+
+```{r, eval=FALSE}
+set.seed(12639)
+DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation) <- "integrated"
+# Run PCA
+fl_samples_DEG_noCd45_sex_proliferation <- RunPCA(object = fl_samples_DEG_noCd45_sex_proliferation, verbose = FALSE)
+```
+
+
+
+```{r}
+# Run UMAP
+fl_samples_DEG_noCd45_sex_proliferation <- RunUMAP(fl_samples_DEG_noCd45_sex_proliferation, 
+                  dims = 1:50,
+                  reduction = "pca", verbose = FALSE)
+```
+
+
+
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_DEG_noCd45_sex_proliferation,
+        reduction = "umap",
+        label = TRUE,
+        group.by = "sample_group",
+        label.size = 6,
+        pt.size = 1.5)
+```
+
+
+
+I WILL DO RNA VELOCITY AND TRAJECTORY INFERENCE BEFORE I COME BACK TO DIFFERENTIAL GENE EXPRESSION ANALYSIS AND PATHWAY ANALYSIS
+
+```{r}
+#dir.create("~/myproject/sc_analysis_project/msc_project/rnavelocity/All_timepoints_rnavelocity")
+All_timepoints_rnavelo <- "~/myproject/sc_analysis_project/msc_project/rnavelocity/All_timepoints_rnavelocity/"
+```
+
+
+
+## PREPARE ERYTHROID SEURAT OBJECT METADATA FOR Proliferation
+
+## Ery
+```{r}
+DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation) <- "SCT"
+# Make a copy of the original object to avoid stories that touch
+fl_samples_DEG_noCd45_sex_proliferation1 <- fl_samples_DEG_noCd45_sex_proliferation
+
+# save metadata table
+fl_samples_DEG_noCd45_sex_proliferation1$barcode <- colnames(fl_samples_DEG_noCd45_sex_proliferation1)
+fl_samples_DEG_noCd45_sex_proliferation1$UMAP_1 <- fl_samples_DEG_noCd45_sex_proliferation1@reductions$umap@cell.embeddings[,1]
+fl_samples_DEG_noCd45_sex_proliferation1$UMAP_2 <- fl_samples_DEG_noCd45_sex_proliferation1@reductions$umap@cell.embeddings[,2]
+```  
+
+
+```{r}
+# Select column variables of interest
+All_timepoints_metadata <- fl_samples_DEG_noCd45_sex_proliferation1@meta.data
+All_timepoints_metadata <- All_timepoints_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident, barcode, UMAP_1, UMAP_2, sex)) %>% dplyr::rename("CellID" = cells)
+
+fl_samples_DEG_noCd45_sex_proliferation1@meta.data <- All_timepoints_metadata
+```
+
+
+```{r}
+write.csv(fl_samples_DEG_noCd45_sex_proliferation1@meta.data, file = paste0(All_timepoints_rnavelo, "All_timepoints_metadata.csv"), quote = F, row.names = F)
+```
+
+
+```{r}
+# Write expression counts matrix
+All_timepoints_counts_matrix <- GetAssayData(fl_samples_DEG_noCd45_sex_proliferation1, assay = "SCT", layer = "counts") 
+ 
+writeMM(All_timepoints_counts_matrix, "rnavelocity/All_timepoints_rnavelocity/All_timepoints_counts.mtx", quote = F, row.names = T)
+```
+
+
+
+```{r}
+# Write dimensionality reduction matrix
+write.csv(fl_samples_DEG_noCd45_sex_proliferation1@reductions$pca@cell.embeddings, file = paste0(All_timepoints_rnavelo, "All_timepoints_pca.csv"), quote = F, row.names = F)
+```
+
+
+```{r}
+# Write gene names
+write.table(data.frame("gene" = rownames(All_timepoints_counts_matrix)), file = paste0(All_timepoints_rnavelo, "All_timepoints_rnavelo_gene_names.csv"), quote = F, row.names = F, col.names = F)
+```
 
 
 

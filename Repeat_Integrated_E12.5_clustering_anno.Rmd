@@ -2072,7 +2072,7 @@ write.csv(EPa_vs_EPb_E12.5_downreg,
 ```
 
 
-# GO ANALYSIS OF DIFFERENTIALLY EXPRESSED ERYTHROID AND MEGAKARYOCYTE GENES. I did pathway enrichment instead
+# GO ANALYSIS OF DIFFERENTIALLY EXPRESSED ERYTHROID GENES. I did pathway enrichment instead
 
 ```{r}
 # Load libraries
@@ -2481,9 +2481,6 @@ ggsave("R_Male_marker2_fl_samples_E12.5_12May_named_subset_nosexdoublets.tif",
 sex_genes <- list(c("Med14", "Usp9x", "Ddx3x", "Maoa","Fundc1","Kdm6a","Uba1","Cdk16","Plxnb3","L1cam","Arhgap4", "Naa10","Renbp","Hcfc1","Ikbkg","Gab3","Tbl1x","Prkx","Zfx","Eif2s3x", "Tsix","Xist","Sh3bgrl", "Chm","Pcdh11x", "Nap1l3",  "Srpx2", "Sytl4","Morf4l2", "Alg13","Ribc1","Smc1a","Kdm5c","Gpr143",  "Eif1ax",  "Rbbp7",   "Syap1",   "S100g", "Grpr","Car5b","Pir","Gemin8","Gpm6b","Ofd1","Rab9","Tmsb4x",  "Amelx","Clcn4","Dazl","Kdm5d","Eif2s3y", "Uty", "Ddx3y", "Usp9y")) 
 
 sex_genes_vector <- c("Med14", "Usp9x", "Ddx3x", "Maoa","Fundc1","Kdm6a","Uba1","Cdk16","Plxnb3","L1cam","Arhgap4", "Naa10","Renbp","Hcfc1","Ikbkg","Gab3","Tbl1x","Prkx","Zfx","Eif2s3x", "Tsix","Xist","Sh3bgrl", "Chm","Pcdh11x", "Nap1l3",  "Srpx2", "Sytl4","Morf4l2", "Alg13","Ribc1","Smc1a","Kdm5c","Gpr143",  "Eif1ax",  "Rbbp7",   "Syap1",   "S100g", "Grpr","Car5b","Pir","Gemin8","Gpm6b","Ofd1","Rab9","Tmsb4x",  "Amelx","Clcn4","Dazl","Kdm5d","Eif2s3y", "Uty", "Ddx3y", "Usp9y")
-
-# Incomplete list
-#sex_genes <- c("Med14", "Usp9x", "Ddx3x",  "Maoa", "Fundc1", "Kdm6a", "Uba1", "Cdk16", "L1cam", "Arhgap4", "Naa10", "Renbp","Hcfc1","Ikbkg", "Gab3" , "Tbl1x" ,  "Prkx", "Zfx","Eif2s3x", "Tsix","Xist", # "Sh3bgrl", "Chm","Nap1l3" , "Sytl4", "Morf4l2", "Alg13","Ribc1","Smc1a","Kdm5c","Eif1ax" , "Rbbp7" ,  "Syap1", "S100g", "Pir","Gemin8", "Gpm6b","Ofd1", "Rab9", "Tmsb4x", #"Clcn4","Dazl","Kdm5d","Eif2s3y", "Uty","Ddx3y",  "Car5b")
 ```
 
 
@@ -3974,16 +3971,6 @@ a
 
 
 
-
-
-
-
-
-
-
-
-
-
 # USE THE FOLLOWING ANALYSIS AS YOUR MAIN STORY IN YOUR THESIS. EPs GROUPED BASED ON SEX, NOT A AND B.
 
 
@@ -4155,42 +4142,6 @@ ggsave("volcano_female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_E
        path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E12.5/",
        width = 15, height = 15)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-#female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif$sex <- #with(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif, ifelse(avg_log2FC >0, "female", "male"))
-```
-
-
-
-```{r, eval=FALSE} 
-# Arrange markers by average p_val_adj
-#female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_arranged <- #female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif %>% 
-  #group_by(sex) %>% 
-  #dplyr::arrange(p_val_adj, .by_group = TRUE)
-
-```
-
-
-```{r}
-#DefaultAssay(fl_samples_E12.5_12May_named) <- "SCT"
-# Let us look at the top markers of each cluster
-#top_80_female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif <- #female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_arranged %>% group_by(sex) %>% 
-  #slice_min(p_val_adj, n = 40)
-```
-
-
 
 
 
