@@ -1,5 +1,5 @@
 ---
-title: "Clustering annotation of E12.5 Integrated data to remove batch effect"
+title: "Clustering annotation of E14.5 Integrated data to remove batch effect"
 author: "Ekpereka Amutaigwe"
 date: "2023-05-14"
 output: html_document
@@ -56,6 +56,7 @@ library(clusterProfiler)
 library(msigdbr)
 library(GOplot)
 library(enrichplot)
+library(AUCell)
 })
 ```
 
@@ -73,6 +74,7 @@ fl_samples_E14.5_12May <- readRDS("~/myproject/sc_analysis_project/msc_project/r
 fl_samples_E14.5_12May_regressed <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_regressed.rds")
 fl_samples_E14.5_12May_named_subset <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/repeated_fl_samples_E14.5_12May_named_subset.rds")
 fl_samples_E14.5_12May_named_subset_regressed <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressedsexandsexgenes.rds")
+markers_fl_samples_E14.5_12May_named_subset_regressed <- readRDS( "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/markers_fl_samples_E14.5_12May_named_subset_regressed.rds")
 fl_samples_E14.5_12May_named_subset_regressed_named_EPs <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressed_named_EPs.rds")
 markers_fl_samples_E14.5_12May_named <- readRDS("~/myproject/sc_analysis_project/msc_project/results/FL_E14.5/markers_fl_samples_E14.5_12May_named.rds")
 ```
@@ -802,7 +804,7 @@ ggplot(ncells_E14.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
 
 ggsave("repeated_cellsincluster_fl_samples_E14.5_12May_named.tif",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
-       width = 17, height = 15, device = "tiff", dpi = 500)
+       width = 17, height = 15, device = "tiff")
 ```
 
 
@@ -2130,7 +2132,7 @@ fl_samples_E14.5_12May_named_subset_nosexdoublets <- fl_samples_E14.5_12May_name
 
 
 
-# Determine sex of cells at E12.5 using cellXY
+# Determine sex of cells at E14.5 using cellXY
 ```{r}
 library(cellXY)
 library(speckle)
@@ -2447,8 +2449,8 @@ DefaultAssay(fl_samples_E14.5_12May_named_subset_regressed) <- "SCT"
 top_3_fl_samples_E14.5_12May_named_subset_regressed <- markers_fl_samples_E14.5_12May_named_subset_regressed %>% group_by(cluster) %>% 
   slice_max(avg_log2FC, n = 3)
 
-#top_30_markers_fl_samples_E14.5_12May_named_subset_regressed <- markers_fl_samples_E14.5_12May_named_subset_regressed %>% group_by(cluster) %>% 
-  #slice_max(avg_log2FC, n = 30)
+top_5_markers_fl_samples_E14.5_12May_named_subset_regressed <- markers_fl_samples_E14.5_12May_named_subset_regressed %>% group_by(cluster) %>% 
+  slice_max(avg_log2FC, n = 5)
 ```
 
 
@@ -2533,6 +2535,30 @@ dev.off()
 
 ```
 
+
+
+
+```{r}
+#library(viridis)
+DefaultAssay(fl_samples_E14.5_12May_named_subset_regressed) <- "RNA"
+fl_samples_E14.5_12May_named_subset_regressed <- ScaleData(fl_samples_E14.5_12May_named_subset_regressed)
+```
+
+
+```{r}
+mapal <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdBu"))(256)
+DoHeatmap(subset(fl_samples_E14.5_12May_named_subset_regressed, downsample = 100),
+          features = top_3_markers,
+          group.by = "cluster_ident",
+          group.colors = c(MEP = "#565656",MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB",EP1a = "#16FF32", EP2a = "#F7E1A0", EP1b =  "darkorange2",  EP2b = "#2ED9FF",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1",  EP6b = "#1CFFCE", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), 
+          angle = 45) +
+          theme(text = element_text(size = 30)) +
+  scale_fill_gradientn(colours = rev(mapal))
+          #scale_fill_viridis()
+          
+  ggsave("Top3_heatmap_fl_samples_E14.5_12May_named_subset_regressed_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots",
+```
 
 
 
@@ -3269,7 +3295,7 @@ DimPlot(object = fl_samples_E14.5_12May_named_subset_regressed,
         theme(axis.line = element_blank()) +
         theme(axis.ticks = element_blank())
 ggsave("subset_replicates_color_umap_fl_samples_E14.5_12May_named_subset_regressed.pdf",
-       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
        width = 17, height = 15)
 ```
 
@@ -3360,7 +3386,7 @@ ggsave("R_umap_EP_fl_samples_E14.5_12May_named_subset_regressed_named_EPs.pdf",
 
 
 
-# DIFFERENTIAL GENE EXPRESSION BETWEEN EPa and EPb
+# DIFFERENTIAL GENE EXPRESSION BETWEEN EPa and EPb. EPa represents Females, EPb represents males
 
 ```{r}
 female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets <- FindMarkers(fl_samples_E14.5_12May_named_subset_regressed_named_EPs, 
@@ -3651,6 +3677,131 @@ guides(color = guide_legend(override.aes = list(size = 5)))
 ```
 
 
+
+
+# Filter metadata to remove cells with unknown sex
+```{r}
+fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known <- subset(fl_samples_E14.5_12May_named_subset_regressed_named_EPs, subset = sex != "unknown")
+```
+
+
+
+
+```{r}
+# SCTransform the subset Ery object
+fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known <- SCTransform(fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score", "Sex_Genes1", "sex"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+
+```{r}
+# Table of cells based on sex
+table(fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known$sex, fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known$cluster_ident)
+
+table(fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known$sex, fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known$cluster_ident)
+```
+
+
+
+# TRANSCRIPTION FACTOR ENRICHMENT ANALYSIS USING SCENIC
+
+# Run the analysis on Compute Canada
+# Use the Rscript ~/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs/computecanadascenicE14.5.R
+
+
+```{r}
+# Create a directory for transferring Compute Canada output since you do not want to transfer input files
+#dir.create("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs")
+```
+
+
+
+```{r}
+# Read in already saved scenicOptions object (computed on Compute Canada)
+scenicOptions_E14.5_EPs <- readRDS("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs/int/scenicOptions_E14.5_EPs.rds")
+fl_samples_E14.5_sex_scenic_cellInfo <- readRDS("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs/int/fl_samples_E14.5_sex_scenic_cellInfo.rds")
+scenicOptions_E14.5_EPs@inputDatasetInfo$cellInfo <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs/int/fl_samples_E14.5_sex_scenic_cellInfo.rds"
+scenicOptions_E14.5_EPs@settings$dbDir <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs"
+```
+
+
+```{r}
+# Save cellInfo
+saveRDS(fl_samples_E14.5_sex_scenic_cellInfo, "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs/int/fl_samples_E14.5_sex_scenic_cellInfo.rds")
+```
+
+
+
+```{r}
+# Add cellInfo to scenicOptions object
+scenicOptions_E14.5_EPs@inputDatasetInfo$cellInfo <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs/int/fl_samples_E14.5_sex_scenic_cellInfo.rds"
+```
+
+
+
+```{r}
+setwd("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs")
+set.seed(181)
+regulons <- loadInt(scenicOptions_E14.5_EPs, "regulons")
+
+regulonAUC <- loadInt(scenicOptions_E14.5_EPs, "aucell_regulonAUC")
+
+# Extract AUC scores of regulons 
+regulon_auc_score_E14.5_EPs <- getAUC(regulonAUC)
+
+regulonAUC <- regulonAUC[onlyNonDuplicatedExtended(rownames(regulonAUC)),]
+regulonActivity_bySex <- sapply(split(rownames(fl_samples_E14.5_sex_scenic_cellInfo), fl_samples_E14.5_sex_scenic_cellInfo$sex),
+                                     function(allcells) rowMeans(getAUC(regulonAUC)[,allcells]))
+regulonActivity_bySex_Scaled <- t(scale(t(regulonActivity_bySex), center = T, scale=T))
+
+regulonActivity_bySex_Scaled <- regulonActivity_bySex_Scaled %>% as.data.frame() %>% dplyr::select(-unknown) %>% as.matrix()
+
+
+cols_sex <- c(Male = "#7997FF", Female = "pink2")
+
+
+annotation_col <-  data.frame(Sex=unique(fl_samples_E14.5_sex_scenic_cellInfo$sex),
+                              Timepoint=unique(fl_samples_E14.5_sex_scenic_cellInfo$sample_group))
+                              #Sex=fl_samples_E14.5_sex_scenic_cellInfo$sex)
+annotation_colors <- list(Sex=cols_sex)
+
+rownames(regulonActivity_bySex_Scaled) <- gsub("_extended", "", rownames(regulonActivity_bySex_Scaled))
+                                        
+
+#pdf(file="/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_E14.5_EPs/fl_samples_E14.5_sex_scenic_heatmap.pdf", width = 25, height =25)
+heat1 <- ComplexHeatmap::Heatmap(regulonActivity_bySex_Scaled, name="Regulon act.",
+                        cluster_columns = FALSE,
+                        show_column_dend = FALSE,
+                        cluster_column_slices = FALSE,
+                        #column_title_gp = gpar(fontsize = 8),
+                        #column_gap = unit(0.5, "mm"),
+                        row_names_gp = gpar(fontsize = 6),
+                        cluster_rows = TRUE,
+                        show_row_dend = FALSE,
+                        #col = viridisLite::viridis(length(mat_breaks) - 1),
+                        #row_names_gp = gpar(fonsize = 4),
+                        column_title_rot = 45,
+                        top_annotation = HeatmapAnnotation(df = annotation_col, col = annotation_colors, show_legend = TRUE, show_annotation_name = FALSE, annotation_legend_param = list(labels_gp = gpar(fontsize = 6),  title_gp = gpar(fontsize = 6, fontface = "bold"))),
+                        show_column_names = FALSE,
+                         heatmap_legend_param = list(labels_gp = gpar(fontsize = 6), title_gp = gpar(fontsize = 6, fontface = "bold")),
+                        width = 25,
+                        height = 25,
+                        use_raster = TRUE,
+                        raster_quality = 4)
+draw(heat1)
+#dev.off()
+
+```
+
+
+
+```{r}
+
+```
 
 
 
@@ -4031,8 +4182,10 @@ write_csv(markers_fl_samples_E14.5_12May_named, "~/myproject/sc_analysis_project
 saveRDS(fl_samples_E14.5_12May_named_subset, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/repeated_fl_samples_E14.5_12May_named_subset.rds")
 saveRDS(fl_samples_E14.5_12May_named_subset_nosexdoublets, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_nosexdoublets_notregressed.rds")
 saveRDS(fl_samples_E14.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressedsexandsexgenes.rds")
-#saveRDS(fl_samples_E14.5_12May_named_subset_regressed_named, #"~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressedsexandsexgenes_named.rds")
+saveRDS(fl_samples_E14.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressedsexandsexgenes_named.rds")
+saveRDS(markers_fl_samples_E14.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/markers_fl_samples_E14.5_12May_named_subset_regressed.rds")
 saveRDS(fl_samples_E14.5_12May_named_subset_regressed_named_EPs, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressed_named_EPs.rds")
+saveRDS(fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known.rds")
 
 
 #saveRDS(markers_fl_samples_E12.5_12May_named_subset, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/markers_fl_samples_E12.5_12May_named_subset.rds")

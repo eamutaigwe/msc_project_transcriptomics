@@ -71,9 +71,11 @@ dir.create("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/1
 fl_samples_E12.5_12May <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/E12.5_integrated.rds") # Raw object.
 fl_samples_E12.5_12May <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_clustered_sexgenesnotremoved.rds")
 fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS( "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named.rds")
+markers_fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS( "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/markers_fl_samples_E12.5_12May_named_subset_regressed_named.rds")
 fl_samples_E12.5_12May_regressed <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_regressed.rds")
 fl_samples_E12.5_12May_named_subset <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/repeated_fl_samples_E12.5_12May_named_subset.rds")
 fl_samples_E12.5_12May_named_subset_regressed_named_EPs <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs.rds")
+fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex.rds")
 fl_samples_E12.5_12May_named_subset_DEG <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_DEG.rds")
 ```
 
@@ -1678,6 +1680,13 @@ draw(heat)
 ```
 
 
+
+
+
+
+
+
+
 #Code copied from [https://divingintogeneticsandgenomics.rbind.io/post/stacked-violin-plot-for-visualizing-single-cell-data-in-seurat/]
 ```{r}
 ## remove the x-axis text and tick
@@ -2704,8 +2713,8 @@ DefaultAssay(fl_samples_E12.5_12May_named_subset_regressed_named) <- "SCT"
 top_3_fl_samples_E12.5_12May_named_subset_regressed_named <- markers_fl_samples_E12.5_12May_named_subset_regressed_named %>% group_by(cluster) %>% 
   slice_max(avg_log2FC, n = 3)
 
-#top_30_markers_fl_samples_E12.5_12May <- markers_fl_samples_E12.5_12May %>% group_by(cluster) %>% 
-  #slice_max(avg_log2FC, n = 30)
+top_5_fl_samples_E12.5_12May_named_subset_regressed_named <- markers_fl_samples_E12.5_12May_named_subset_regressed_named %>% group_by(cluster) %>% 
+  slice_max(avg_log2FC, n = 5)
 ```
 
 
@@ -2736,7 +2745,7 @@ set.seed(123)
 DimPlot(object = fl_samples_E12.5_12May_named_subset_regressed_named,
         reduction = "umap",
         cols = clust_cols_subset,
-        label = TRUE,
+        label = FALSE,
         label.size = 11,
         pt.size = 1.5) + NoLegend() +
         #theme(plot.title = element_text(size = 50, face = "bold")) +
@@ -2758,7 +2767,7 @@ ggsave("repeated_umap2_fl_samples_E12.5_12May_named_subset_regressed_named.tif",
 ```{r}
 DimPlot(object = fl_samples_E12.5_12May_named_subset_regressed_named,
         reduction = "umap",
-        label = TRUE,
+        label = FALSE,
         label.size = 11,
         pt.size = 1.5) + NoLegend() +
         #theme(plot.title = element_text(size = 50, face = "bold")) +
@@ -3497,10 +3506,12 @@ ggsave("subset_Female_marker1_fl_samples_E12.5_12May_named_subset_regressed_name
 ```{r}
 library(scCustomize)
 
-#tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E12.5_12May_named_subset_regressed_named.tif", width = 550, height = 550)
-Clustered_DotPlot(seurat_object = fl_samples_E12.5_12May_named_subset_regressed_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Epor", "Gata2", "Pf4", "Vwf", "Itga2b", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Ppbp", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Gp1bb", "Cd24a", "Muc13", "Myb", "Epor", "F2r", "Myl9", "Pf4", "Alox12"), k = 4, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 10, row_label_fontface = "bold",colors_use_idents = c(MEP = "#565656",MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB",EP1a = "#16FF32", EP2a = "#F7E1A0", EP1b =  "darkorange2",  EP2b = "#2ED9FF",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1",  EP6b = "#1CFFCE", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red"))
+tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E12.5_12May_named_subset_regressed_named.tif", width = 560, height = 550)
+Clustered_DotPlot(seurat_object = fl_samples_E12.5_12May_named_subset_regressed_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Epor", "Gata2", "Pf4", "Vwf", "Itga2b", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Ppbp", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Gp1bb", "Cd24a", "Muc13", "Myb", "Epor", "F2r", "Myl9", "Pf4", "Alox12"), k = 4, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 20, row_label_size = 20,  colors_use_idents = c(MEP = "#565656",MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB",EP1a = "#16FF32", EP2a = "#F7E1A0", EP1b =  "darkorange2",  EP2b = "#2ED9FF",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1",  EP6b = "#1CFFCE", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red")) #+ theme(axis.text.x = element_text(size = 30))
+  
+#row_label_fontface = "bold",
+dev.off()
 
-#dev.off()
 ```
 
 
@@ -3562,6 +3573,28 @@ draw(heat)
 
 
 
+```{r}
+#library(viridis)
+DefaultAssay(fl_samples_E12.5_12May_named_subset_regressed_named) <- "RNA"
+fl_samples_E12.5_12May_named_subset_regressed_named <- ScaleData(fl_samples_E12.5_12May_named_subset_regressed_named)
+```
+
+
+```{r}
+mapal <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdBu"))(256)
+DoHeatmap(subset(fl_samples_E12.5_12May_named_subset_regressed_named, downsample = 100),
+          features = top_3_markers,
+          group.by = "cluster_ident",
+          group.colors = c(MEP = "#565656",MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB",EP1a = "#16FF32", EP2a = "#F7E1A0", EP1b =  "darkorange2",  EP2b = "#2ED9FF",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1",  EP6b = "#1CFFCE", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), 
+          angle = 45) +
+          theme(text = element_text(size = 30)) +
+  scale_fill_gradientn(colours = rev(mapal))
+          #scale_fill_viridis()
+          
+  ggsave("Top3_heatmap_fl_samples_E12.5_12May_named_subset_regressed_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
 
 
 ```{r}
@@ -3584,6 +3617,8 @@ ggsave("subset_replicates_color_umap_fl_samples_E12.5_12May_named_subset_regress
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
        width = 17, height = 15)
 ```
+
+
 
 ```{r}
 # Plot UMAP
@@ -4042,7 +4077,7 @@ DimPlot(object = fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex,
 
 
 
-# DIFFERENTIAL GENE EXPRESSION BETWEEN female and mostly_male
+# DIFFERENTIAL GENE EXPRESSION BETWEEN female and mostly_male. THE CORRECT NAMES ARE MALE AND FEMALE
 
 ```{r}
 female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex <- FindMarkers(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex, 
@@ -4455,6 +4490,11 @@ draw(heat)
 ```
 
 
+## PREPARE EPs FOR SCENIC (TF inference)
+
+```{r}
+#fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex_known_scenic <- dplyr::select()
+```
 
 
 
@@ -4473,7 +4513,10 @@ saveRDS(fl_samples_E12.5_12May_named_subset, "~/myproject/sc_analysis_project/ms
 saveRDS(fl_samples_E12.5_12May_named_subset_nosexdoublets, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_nosexdoublets_notregressed.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named.rds")
+saveRDS(markers_fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/markers_fl_samples_E12.5_12May_named_subset_regressed_named.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named_EPs, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs.rds")
+saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex.rds")
+saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex_known, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex_known.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_DEG, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_DEG.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_DEG_merge, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_DEG_merge.rds")
 

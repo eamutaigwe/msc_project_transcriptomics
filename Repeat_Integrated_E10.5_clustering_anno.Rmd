@@ -964,9 +964,10 @@ set.seed(123)
 DimPlot(object = fl_samples_E10.5_12May_named,
         reduction = "umap",
         cols = clust_cols,
-        label = TRUE,
+        label = FALSE,
         label.size = 11,
-        pt.size = 1.5) + NoLegend() +
+        pt.size = 1.5) + 
+        #NoLegend() +
         #theme(plot.title = element_text(size = 50, face = "bold")) +
         theme(axis.text.x = element_blank()) +
         theme(axis.text.y = element_blank()) +
@@ -1054,7 +1055,8 @@ a <- FeaturePlot(fl_samples_E10.5_12May_named,
             theme(axis.title.x = element_blank()) +
             theme(axis.title.y = element_blank()) +
             theme(axis.line = element_blank()) +
-            theme(axis.ticks = element_blank()) 
+            theme(axis.ticks = element_blank()) +
+            theme(legend.position = "top")
 
 b <- FeaturePlot(fl_samples_E10.5_12May_named, 
             reduction = "umap", 
@@ -1124,6 +1126,40 @@ e <- FeaturePlot(fl_samples_E10.5_12May_named,
             theme(axis.line = element_blank()) +
             theme(axis.ticks = element_blank()) 
 
+f <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Fgd5"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 2) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+g <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Spi1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 2) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
 a
 ggsave("EMP7_hlf_markers1_fl_samples_E10.5_12May_named.tiff",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
@@ -1143,6 +1179,14 @@ ggsave("EMP7_Ly6a_markers4_fl_samples_E10.5_12May_named.tiff",
 
 e
 ggsave("EMP7_Mecom_markers5_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+f
+ggsave("EMP8_Fgd5_markers6_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+g
+ggsave("EMP8_Spi1_markers7_fl_samples_E10.5_12May_named.tiff",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
        width = 17, height = 15, device = "tiff")
 ```
@@ -1258,6 +1302,8 @@ ggsave("EMP_marker5_fl_samples_E10.5_12May_named.tiff",
        width = 17, height = 15, device = "tiff")
 ```
 
+
+
 ```{r}
 # MPP
 a <- FeaturePlot(fl_samples_E10.5_12May_named, 
@@ -1346,7 +1392,93 @@ ggsave("EMPalso_marker4_fl_samples_E10.5_12May_named.tiff",
        width = 17, height = 15, device = "tiff")
 ```
 
+```{r}
+# GMP
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Hp"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
 
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ms4a3"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Mpo"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Perp"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("GMP_marker1_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("GMP_marker2_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("GMP_marker3_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("GMP_marker4_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
 
 
 ```{r}
@@ -1775,6 +1907,7 @@ ggsave("R_EryP_marker5_fl_samples_E10.5_12May_named.tif",
        width = 17, height = 15, device = "tiff")
 ```
 
+
 ```{r}
 # Erythroblasts
 a <- FeaturePlot(fl_samples_E10.5_12May_named, 
@@ -1942,16 +2075,149 @@ b <- FeaturePlot(fl_samples_E10.5_12May_named,
             theme(axis.line = element_blank()) +
             theme(axis.ticks = element_blank())
 
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Rag1"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+d <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ccr9"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+e <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Flt3"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
 a
-ggsave("LP_marker1_fl_samples_E10.5_12May_named.tiff",
+ggsave("LP_marker1_fl_samples_E10.5_12May_named.tif",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
        width = 17, height = 15, device = "tiff")
 b
-ggsave("LP_marker2_fl_samples_E10.5_12May_named.tiff",
+ggsave("LP_marker2_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+c
+ggsave("LP_marker3_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+d
+ggsave("LP_marker4_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+e
+ggsave("LP_marker5_fl_samples_E10.5_12May_named.tif",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
        width = 17, height = 15, device = "tiff")
 
 ```
+
+
+```{r}
+# Myeloid
+a <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Ccl9"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+b <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Csf1r"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+c <- FeaturePlot(fl_samples_E10.5_12May_named, 
+            reduction = "umap", 
+            features = c("Irf8"),
+            order = TRUE,
+            min.cutoff = 'q10', 
+            cols = c("grey", "red"),
+            label = TRUE,
+            label.size = 11,
+            pt.size = 1.5) +
+            theme(plot.title = element_text(size = 50, face = "bold")) +
+            theme(axis.text.x = element_blank()) +
+            theme(axis.text.y = element_blank()) +
+            theme(axis.title.x = element_blank()) +
+            theme(axis.title.y = element_blank()) +
+            theme(axis.line = element_blank()) +
+            theme(axis.ticks = element_blank())
+
+a
+ggsave("Myeloid_Ccl9_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("Myeloid_Csf1r_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width =17, height = 15, device = "tiff")
+
+c
+ggsave("Myeloid_Irf8_fl_samples_E10.5_12May_named.tiff",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width =17, height = 15, device = "tiff")
+
+```
+
 
 
 ```{r}
@@ -1975,7 +2241,7 @@ a <- FeaturePlot(fl_samples_E10.5_12May_named,
 
 b <- FeaturePlot(fl_samples_E10.5_12May_named, 
             reduction = "umap", 
-            features = c("Csf1r"),
+            features = c("Cx3cr1"),
             order = TRUE,
             min.cutoff = 'q10', 
             cols = c("grey", "red"),
@@ -2634,7 +2900,7 @@ annotation_colors <- list(E10.5 = clust_cols,
                                         
 # Determine expression ranges in the matrix
 quantile(mat, c(0.1, 0.95))
-cols <- circlize::colorRamp2(c(-1, 0, 2), c("blue", "black", "yellow"))
+cols <- circlize::colorRamp2(c(-1, 0, 2), c("darkgreen", "black", "yellow"))
 
 
 #pdf(file="~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots/R_top3_heatmap_fl_samples_E10.5_12May_named.pdf", width = 25, height = 25)
@@ -2664,6 +2930,36 @@ draw(heat)
 #annotation_legend_param = list(labels_gp = gpar(fontsize = 30),show_annotation_name = TRUE,title_gp = gpar(fontsize = 30, fontface = "bold")
 
 ```
+
+
+```{r}
+#library(viridis)
+DefaultAssay(fl_samples_E10.5_12May_named) <- "RNA"
+fl_samples_E10.5_12May_named <- ScaleData(fl_samples_E10.5_12May_named)
+```
+
+
+
+
+```{r}
+#library(viridis)
+DefaultAssay(fl_samples_E10.5_12May_named) <- "SCT"
+mapal <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdBu"))(256)
+DoHeatmap(subset(fl_samples_E10.5_12May_named, downsample = 100),
+          features = top_3_markers,
+          group.by = "cluster_ident",
+          group.colors = c(EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE", Mk1 = "#DEA0FD",  Mk2 = "#F8A19F", MCP = "#E2E2E2", PEB1 = "#2ED9FF", PEB2 = "#C4451C", Mono = "#FBE426", Mac = "darkorange2", `GMP/GP` = "grey60", MEP = "#F6222E",  PEB3 = "#FE00FA", `Prim-EB` = "#1C8356", `HSC/MPP` = "#00AFBB"),
+          angle = 45) +
+          theme(text = element_text(size = 30)) +
+  scale_fill_gradientn(colours = rev(mapal))
+          #scale_fill_viridis()
+          
+  ggsave("Top3_heatmap_fl_samples_E10.5_12May_named.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+
 
 
 #Code copied from [https://divingintogeneticsandgenomics.rbind.io/post/stacked-violin-plot-for-visualizing-single-cell-data-in-seurat/]
@@ -4793,87 +5089,6 @@ a
 
 
 
-## Merge objects after all filtering from different time points. 
-```{r}
-# Merge fetal liver samples for downstream analysis. 
-merged_timepoints <- merge(x = fl_samples_E10.5_12May, y = list(fl_samples_E12.5_12May, fl_samples_E14.5_12May))
-
-#rm(fl_samples_E10.5_12May_named_DEG,fl_samples_E12.5_12May_named_DEG,fl_samples_E14.5_12May_named_DEG)
-```
-
-
-
-```{r}
-# Create metadata dataframe
-metadata <- as.data.frame(merged_timepoints@meta.data)
-
-
-# Get total number of cells in each sample
-(total_cells <- metadata %>% 
-  group_by(sample) %>% 
-  summarize(n = n()))
-
-
-#fl_samples_E10.5_12May_named@meta.data <- metadata
-
-# Visualize the number of cell counts per sample
-merged_timepoints@meta.data %>% 
-  ggplot(aes(x = sample, fill = sample)) +
-  geom_bar() +
-  geom_text(stat = "count", aes(label = ..count.., vjust = -1), size = 11, face = "bold") +
-  theme_classic() +
-  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 80, vjust = 1, hjust = 1)) +
-  theme(axis.text.y = element_text(face = "bold", size = 45)) +
-  #theme(axis.text.x = element_text(angle = 45)) +
-  scale_y_continuous(breaks = seq(0, 5000, by=3000), limits=c(0,5000)) +
-  #theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 30)) +
-  ylab("Total Cells in Sample") +
-  theme(axis.title.y = element_text(size = 50, face = "bold")) +
-  xlab("Sample") +
-  theme(axis.title.x = element_text(size = 50, face = "bold")) +
-  #coord_flip() +
-  #ggtitle("Total number of cells in each sample") +
-  NoLegend() 
-
-ggsave("May12th_final_total_no_of_counts_persample.tif", 
-       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
-       width = 17, height = 15, device = "tiff", dpi = 500)
-```
-
-
-```{r}
-#feats <- c("nGene", "nUMI", "mitoRatio")
-#VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = feats, ncol = 3) +
-  #theme(axis.text.x = element_text(face = "bold", size = 12)) +
-  #theme(axis.text.y = element_text(face = "bold", size = 12)) +
-    #NoLegend()
-
-a <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "nGene", ncol = 1) +
-  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 80)) +
-  theme(axis.text.y = element_text(face = "bold", size = 40)) +
-  theme(plot.title = element_text(face = "bold", size = 30)) +
-    NoLegend()
-
-b <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "nUMI", ncol = 1) +
-  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 80)) +
-  theme(axis.text.y = element_text(face = "bold", size = 40)) +
-  theme(plot.title = element_text(face = "bold", size = 30)) +
-    NoLegend()
-
-c <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "mitoRatio", ncol = 1) +
-  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 80)) +
-  theme(axis.text.y = element_text(face = "bold", size = 40)) +
-  theme(plot.title = element_text(face = "bold", size = 30)) +
-    NoLegend()
-
-a|b|c
-
-ggsave("May12th_cell_info_after_filtering.tif", 
-       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
-       width = 17, height = 15, device = "tiff")
-
-
-```
 
 
 ```{r}

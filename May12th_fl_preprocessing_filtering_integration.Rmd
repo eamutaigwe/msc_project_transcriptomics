@@ -580,7 +580,13 @@ filtered_seurat <- RunPCA(filtered_seurat)
 set.seed(123)
 DimPlot(filtered_seurat,
         reduction = "pca",
-        group.by= "Phase")
+        group.by= "Phase") +
+        theme(axis.text.x = element_blank()) +
+        theme(axis.text.y = element_blank()) +
+        theme(axis.title.x = element_blank()) +
+        theme(axis.title.y = element_blank()) +
+        theme(axis.line = element_blank()) +
+        theme(axis.ticks = element_blank())
 
 ggsave("May12th_cell_cycle_phase.pdf", 
        path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
@@ -943,8 +949,10 @@ dim(split_seurat[[5]]@meta.data)
 split_seurat[[6]] <- subset(split_seurat[[6]], subset = DF.name6 == "Singlet")
 dim(split_seurat[[6]]@meta.data)
 ```
+
+
 ```{r}
-saveRDS(split_seurat, "~/myproject/sc_analysis_project/msc_project/rds_data/split_seurat_after_filtering_doubletremoval.rds")
+#saveRDS(split_seurat, "~/myproject/sc_analysis_project/msc_project/rds_data/split_seurat_after_filtering_doubletremoval.rds")
 split_seurat <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/split_seurat_after_filtering_doubletremoval.rds")
 ```
 
@@ -1113,12 +1121,101 @@ rm(fl_samples_E14.5_12May)
 # Integrate across conditions (replicates and time points in this case)
 E14.5_integrated <- IntegrateData(anchorset = integ_anchors,
                                    normalization.method = "SCT")
-saveRDS(E14.5_integrated, "~/myproject/sc_analysis_project/msc_project/rds_data/E14.5E14.5_integrated.rds")
+saveRDS(E14.5_integrated, "~/myproject/sc_analysis_project/msc_project/rds_data/E14.5_integrated.rds")
 
 rm(E14.5_integrated, integ_anchors)
 
 ```
 
+
+## Merge objects after all filtering from different time points. 
+```{r}
+# Merge fetal liver samples for downstream analysis. 
+merged_timepoints <- merge(x = fl_samples_E10.5_12May, y = list(fl_samples_E12.5_12May, fl_samples_E14.5_12May))
+
+#rm(fl_samples_E10.5_12May_named_DEG,fl_samples_E12.5_12May_named_DEG,fl_samples_E14.5_12May_named_DEG)
+```
+
+
+
+```{r}
+# Create metadata dataframe
+metadata <- as.data.frame(merged_timepoints@meta.data)
+
+
+# Get total number of cells in each sample
+(total_cells <- metadata %>% 
+  group_by(sample) %>% 
+  summarize(n = n()))
+
+
+#fl_samples_E10.5_12May_named@meta.data <- metadata
+
+# Visualize the number of cell counts per sample
+merged_timepoints@meta.data %>% 
+  ggplot(aes(x = sample, fill = sample)) +
+  geom_bar(width = 0.5) +
+  geom_text(stat = "count", aes(label = ..count.., vjust = 0.5, hjust = -0.1,), size = 10, face = "bold") +
+  theme_classic() +
+  theme(axis.text.x = element_text(face = "bold", size = 30, angle = 90, vjust = 1, hjust = 1)) +
+  theme(axis.text.y = element_text(face = "bold", size = 30)) +
+  #theme(axis.text.x = element_text(angle = 45)) +
+  scale_y_continuous(breaks = seq(0, 5000, by=3000), limits=c(0,6000), expand = expansion(mult = c(0,0.05))) +
+  #theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 30)) +
+  ylab("Total Cells in Sample") +
+  theme(axis.title.y = element_text(size = 25, face = "bold")) +
+  xlab("Sample") +
+  theme(axis.title.x = element_text(size = 25, face = "bold")) +
+  theme(aspect.ratio = 2/1) +
+  coord_flip() +
+  #ggtitle("Total number of cells in each sample") +
+  NoLegend() 
+
+ggsave("May12th_final_total_no_of_counts_persample.tif", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
+       width = 17, height = 15, device = "tiff")
+```
+
+
+```{r}
+#feats <- c("nGene", "nUMI", "mitoRatio")
+#VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = feats, ncol = 3) +
+  #theme(axis.text.x = element_text(face = "bold", size = 12)) +
+  #theme(axis.text.y = element_text(face = "bold", size = 12)) +
+    #NoLegend()
+
+a <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "nGene", ncol = 1) +
+  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 90)) +
+  theme(axis.text.y = element_text(face = "bold", size = 40)) +
+  theme(plot.title = element_text(face = "bold", size = 30)) +
+    NoLegend() +
+    coord_flip()
+
+b <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "nUMI", ncol = 1) +
+  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 90)) +
+  theme(axis.text.y = element_text(face = "bold", size = 40)) +
+  theme(plot.title = element_text(face = "bold", size = 30)) +
+    NoLegend() +
+    coord_flip()
+
+c <- VlnPlot(merged_timepoints, group.by = "sample", pt.size = 0, features = "mitoRatio", ncol = 1) +
+  theme(axis.text.x = element_text(face = "bold", size = 40, angle = 90)) +
+  theme(axis.text.y = element_text(face = "bold", size = 40)) +
+  theme(plot.title = element_text(face = "bold", size = 30)) +
+    NoLegend() +
+    coord_flip()
+
+a
+ggsave("May12th_cell_nGene_info_after_filtering.tif", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
+       width = 17, height = 15, device = "tiff")
+b
+ggsave("May12th_cell_nUMI_info_after_filtering.tif", 
+       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated",
+       width = 17, height = 15, device = "tiff")
+
+
+```
 
 
 ## Specify colours
