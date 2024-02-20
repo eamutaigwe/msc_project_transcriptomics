@@ -965,40 +965,6 @@ merged_seurat_remerge <- merge(x = split_seurat[[1]],
 
 
 
-Plot the features below after doublet removal
-```{r}
-feats <- c("nFeature_RNA", "nCount_RNA", "mitoRatio", "riboRatio")
-VlnPlot(merged_seurat_remerge, group.by = "sample", pt.size = 0, features = feats, ncol = 4) +
-    NoLegend()
-ggsave("May12th_cell_info_after_filtering.pdf", 
-       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
-       width = 17, height = 15)
-
-
-```
-
-
-```{r}
-# Visualize the number of cell counts per sample
-merged_seurat_remerge@meta.data %>% 
-  ggplot(aes(x = sample, fill = sample)) +
-  geom_bar() +
-  geom_text(stat = "count", aes(label = ..count.., vjust = -1)) +
-  theme_classic() +
-  theme(axis.text.x = element_text(face = "bold")) +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
-  ylab("Total Cells in Sample") +
-  xlab("Sample") +
-  ggtitle("Total number of cells in each sample") +
-  NoLegend()
-
-ggsave("May12th_final_total_no_of_counts_persample.pdf", 
-       path = "~/myproject/sc_analysis_project/msc_project/May12th_preprocessing_plots_repeated/",
-       width = 17, height = 15)
-```
-
-
 ```{r}
 rm(merged_seurat_remerge)
 ```

@@ -1307,6 +1307,7 @@ ggsave("R_Erythb_marker6_fl_samples_E14.5_12May_named.pdf",
        width = 17, height = 15)
 ```
 
+
 ```{r}
 # Hepatoblasts
 a <- FeaturePlot(fl_samples_E14.5_12May_named, 
@@ -2550,14 +2551,39 @@ mapal <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdBu"))(256)
 DoHeatmap(subset(fl_samples_E14.5_12May_named_subset_regressed, downsample = 100),
           features = top_3_markers,
           group.by = "cluster_ident",
-          group.colors = c(MEP = "#565656",MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB",EP1a = "#16FF32", EP2a = "#F7E1A0", EP1b =  "darkorange2",  EP2b = "#2ED9FF",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1",  EP6b = "#1CFFCE", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), 
+          group.colors = c(EP1a = "#16FF32", EP1b =  "#2ED9FF", EP2a = "#FE00FA", EP2b = "#DEA0FD", EP3a = "grey60", EP4a = "darkorange2", EP5a = "#90AD1C", MEP = "#F6222E", Mk = "#00AFBB", PEBa = "#3283FE", PEBb = "#1CFFCE", PEBc = "goldenrod1"), 
           angle = 45) +
           theme(text = element_text(size = 30)) +
   scale_fill_gradientn(colours = rev(mapal))
           #scale_fill_viridis()
           
   ggsave("Top3_heatmap_fl_samples_E14.5_12May_named_subset_regressed_named.tif",
-       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
+```
+
+```{r}
+# Plot UMAP
+set.seed(123)
+DimPlot(object = fl_samples_E14.5_12May_named_subset_regressed,
+        reduction = "umap",
+        cols = clust_cols_subset,
+        label = TRUE,
+        label.size = 11,
+        pt.size = 1.5) +
+        #theme(plot.title = element_text(size = 50, face = "bold")) +
+        theme(axis.text.x = element_blank()) +
+        theme(axis.text.y = element_blank()) +
+        theme(axis.title.x = element_blank()) +
+        theme(axis.title.y = element_blank()) +
+        theme(axis.ticks = element_blank()) +
+        theme(axis.line = element_blank()) 
+        #panel.background = element_rect(fill = "white") +
+        #theme(plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) 
+
+ggsave("repeated_labelled_umap2_fl_samples_E14.5_12May_named_subset_regressed.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15, device = "tiff")
 ```
 
 
@@ -2568,7 +2594,7 @@ set.seed(123)
 DimPlot(object = fl_samples_E14.5_12May_named_subset_regressed,
         reduction = "umap",
         cols = clust_cols_subset,
-        label = TRUE,
+        label = FALSE,
         label.size = 11,
         pt.size = 1.5) + NoLegend() +
         #theme(plot.title = element_text(size = 50, face = "bold")) +
@@ -2588,12 +2614,12 @@ ggsave("repeated_umap2_fl_samples_E14.5_12May_named_subset_regressed.tif",
 
 
 ```{r}
-fl_samples_E14.5_12May_named_subset_regressed@active.ident <- factor(fl_samples_E14.5_12May_named_subset_regressed@active.ident, levels = c("MEP", "Mk", "EP1b", "EP2b", "EP1a", "EP2a", "EP3a", "EP4a", "EP5a", "PEBa", "PEBb", "PEBc"))
+fl_samples_E14.5_12May_named_subset_regressed@active.ident <- factor(fl_samples_E14.5_12May_named_subset_regressed@active.ident, levels = c("MEP", "Mk", "EP1a", "EP2a", "EP3a", "EP4a", "EP5a", "PEBa", "EP1b", "EP2b", "PEBb", "PEBc"))
 ```
 
 
 ```{r, eval=FALSE}
-fl_samples_E14.5_12May_named_subset_regressed$cluster_ident <- factor(fl_samples_E14.5_12May_named_subset_regressed$cluster_ident, levels = c("MEP", "Mk", "EP1b", "EP2b", "EP1a", "EP2a", "EP3a", "EP4a", "EP5a", "PEBa", "PEBb", "PEBc"))
+fl_samples_E14.5_12May_named_subset_regressed$cluster_ident <- factor(fl_samples_E14.5_12May_named_subset_regressed$cluster_ident, levels = c("MEP", "Mk", "EP1a", "EP2a", "EP3a", "EP4a", "EP5a", "PEBa", "EP1b", "EP2b", "PEBb", "PEBc"))
 ```
 
 
@@ -2613,7 +2639,7 @@ ggplot(ncells_E14.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
         plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) +
         theme(axis.title.x = element_text(size =50, face = "bold")) +
         theme(axis.title.y = element_text(size = 50, face = "bold")) +
-  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 11, face = "bold") +
+  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 15, face = "bold") +
   #scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
   scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
   xlab("Cell types") + 
@@ -3272,8 +3298,9 @@ ggsave("subset_Female_marker1_fl_samples_E14.5_12May_named_subset_regressed.tif"
 library(scCustomize)
 
 #tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E14.5_12May_named_subset_regressed.tif", width = 550, height = 550)
-Clustered_DotPlot(seurat_object = fl_samples_E14.5_12May_named_subset_regressed, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Epor", "Gata2", "Pf4", "Vwf", "Itga2b", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Ppbp", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Gp1bb", "Cd24a", "Muc13", "Myb", "Epor", "F2r", "Myl9", "Pf4", "Alox12"), k = 3, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 10, row_label_fontface = "bold",colors_use_idents = c(MEP = "#F6222E",Mk = "#00AFBB",EP1b =  "#2ED9FF", EP2b = "#DEA0FD", EP1a = "#16FF32", EP2a = "#FE00FA",  EP3a = "grey60", EP4a = "darkorange2", EP5a = "#90AD1C", PEBa = "#3283FE", PEBb = "#1CFFCE", PEBc = "goldenrod1"), colors_use_exp = c(low="lightgrey", mid="grey", high="red"))
+Clustered_DotPlot(seurat_object = fl_samples_E14.5_12May_named_subset_regressed, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Epor", "Gata2", "Pf4", "Vwf", "Itga2b", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Ppbp", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Gp1bb", "Cd24a", "Muc13", "Myb", "Epor", "F2r", "Myl9", "Pf4", "Alox12"), k = 3, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 20, colors_use_idents = c(MEP = "#F6222E",Mk = "#00AFBB",EP1a = "#16FF32", EP2a = "#FE00FA", EP3a = "grey60", EP4a = "darkorange2", EP5a = "#90AD1C", PEBa = "#3283FE", EP1b =  "#2ED9FF", EP2b = "#DEA0FD", PEBb = "#1CFFCE", PEBc = "goldenrod1"), colors_use_exp = c(low="lightgrey", mid="grey", high="red")) 
 
+#row_label_fontface = "bold",
 #dev.off()
 ```
 
@@ -3617,15 +3644,19 @@ as.data.frame(enrichedterm_res)
 
 
 ```{r}
-categories1 <- c("cellular respiration", "mitochondrial respiratory chain complex assembly", "protein folding", "response to endoplasmic reticulum stress", "translational elongation","electron transport chain", "rRNA metabolic process", "ribosome biogenesis", "cellular aldehyde metabolic process", "mRNA processing", "chromatin remodeling", "regulation of cellular response to oxidative stress", "cellular response to toxic substance")
-clusterProfiler::dotplot(enrichedterm_res, showCategory = categories1) +
-  theme(axis.text.x = element_text(face = "bold", size = 15)) +
-theme(axis.text.y = element_text(face = "bold", size = 15)) +
-theme(plot.title = element_text(size = 20, face = "bold")) +
-theme(axis.title.x = element_text(size = 20, face = "bold")) +
-theme(legend.text = element_text(size = 20, face = "bold")) +
-theme(legend.title = element_text(size = 20, face = "bold")) +
+categories1 <- c("cellular respiration", "mitochondrial respiratory chain complex assembly", "protein folding", "response to endoplasmic reticulum stress", "translational elongation","electron transport chain",  "ribosome biogenesis", "cellular aldehyde metabolic process", "regulation of cellular response to oxidative stress", "cellular response to toxic substance")
+clusterProfiler::dotplot(enrichedterm_res, showCategory = categories1, size = "count") +
+  theme(axis.text.x = element_text(face = "bold", size = 25)) +
+theme(axis.text.y = element_text(face = "bold", size = 30)) +
+theme(plot.title = element_text(size = 25, face = "bold")) +
+theme(axis.title.x = element_text(size = 25, face = "bold")) +
+theme(legend.text = element_text(size = 25, face = "bold")) +
+theme(legend.title = element_text(size = 25, face = "bold")) +
 guides(color = guide_legend(override.aes = list(size = 5)))
+
+ggsave("GO_female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signif.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
+       width = 15, height = 15, device = "tiff")
 ```
 
 
@@ -3666,14 +3697,19 @@ as.data.frame(enrichedreactome_res)
 categories2 <- c("CELLULAR_RESPONSE_TO_CHEMICAL_STRESS", "RESPIRATORY_ELECTRON_TRANSPORT", "CELLULAR_RESPONSE_TO_HYPOXIA", "SYNTHESIS_OF_DNA", 
                  "TRANSLATION", "COMPLEX_I_BIOGENESIS", "THE_CITRIC_ACID_TCA_CYCLE_AND_RESPIRATORY_ELECTRON_TRANSPORT","PROTEIN_LOCALIZATION", "MITOCHONDRIAL_PROTEIN_IMPORT","PROTEIN_LOCALIZATION","CYTOPROTECTION_BY_HMOX1")
 
-clusterProfiler::dotplot(enrichedreactome_res, showCategory = categories2) +
-  theme(axis.text.x = element_text(face = "bold", size = 15)) +
-theme(axis.text.y = element_text(face = "bold", size = 15)) +
-theme(plot.title = element_text(size = 20, face = "bold")) +
-theme(axis.title.x = element_text(size = 20, face = "bold")) +
-theme(legend.text = element_text(size = 20, face = "bold")) +
-theme(legend.title = element_text(size = 20, face = "bold")) +
+clusterProfiler::dotplot(enrichedreactome_res, showCategory = categories2, size = "count") +
+  theme(axis.text.x = element_text(face = "bold", size = 25)) +
+theme(axis.text.y = element_text(face = "bold", size = 25)) +
+theme(plot.title = element_text(size = 25, face = "bold")) +
+theme(axis.title.x = element_text(size = 25, face = "bold")) +
+theme(legend.text = element_text(size = 25, face = "bold")) +
+theme(legend.title = element_text(size = 25, face = "bold")) +
 guides(color = guide_legend(override.aes = list(size = 5)))
+
+
+ggsave("REACTOME_female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signif.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
+       width = 15, height = 15, device = "tiff")
 ```
 
 

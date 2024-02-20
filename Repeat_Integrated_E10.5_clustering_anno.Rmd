@@ -1000,7 +1000,7 @@ ggplot(ncells_E10.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
         plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) +
         theme(axis.title.x = element_text(size =50, face = "bold")) +
         theme(axis.title.y = element_text(size = 50, face = "bold")) +
-  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 11, face = "bold") +
+  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 15, face = "bold") +
   #scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
   scale_y_continuous(breaks = seq(0, 2500, by=500), limits=c(0,2500)) +
   xlab("Cell types") + 
@@ -2818,8 +2818,8 @@ known_markers1 <- c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "
 ```{r}
 library(scCustomize)
 
-#tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E10.5_12May_named.tif", width = 550, height = 550)
-Clustered_DotPlot(seurat_object = fl_samples_E10.5_12May_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "Spi1", "Csf1r", "Pf4", "Vwf", "Elane", "Hp", "Cx3cr1", "Ifitm1", "Irf8", "Itga2b", "Prtn3", "Thbs1","Klf1", "Car1", "Cd34", "Fcgr3", "Ccr2", "C1qa", "C1qb", "Prg2", "Stx3", "Il7r", "Prg3", "Hlf", "Mecom","Prg2", "Ppbp", "S100a8", "Hdc", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Hdc", "Cpa3", "Gp1bb", "Cd24a","Hoxa9", "Hoxa7", "Myb", "Epor", "Mpo", "Rhd", "Ms4a3", "Perp", "Muc13", "Plek", "F2r", "Cd93", "Rag1", "Ccl9", "Ccr9", "Ly6a"), k = 9, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 10, row_label_fontface = "bold",colors_use_idents = c(`HSC/MPP` = "#00AFBB", `GMP/GP` = "grey60", Mono = "#FBE426", Mac = "darkorange2", MCP = "#E2E2E2", MEP = "#F6222E", Mk1 = "#DEA0FD",  Mk2 = "#F8A19F", `Prim-EB` = "#1C8356", EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE",   PEB1 = "#2ED9FF", PEB2 = "#C4451C", PEB3 = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red"))
+#tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E10.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E10.5_12May_named.tif", width = 600, height = 800)
+Clustered_DotPlot(seurat_object = fl_samples_E10.5_12May_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Hba-x", "Hbb-y", "Gata2", "Spi1", "Csf1r", "Pf4", "Vwf", "Elane", "Hp", "Cx3cr1", "Ifitm1", "Irf8", "Itga2b", "Prtn3", "Thbs1","Klf1", "Car1", "Cd34", "Fcgr3", "Ccr2", "C1qa", "C1qb", "Prg2", "Stx3", "Il7r", "Prg3", "Hlf", "Mecom","Prg2", "Ppbp", "S100a8", "Hdc", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Hdc", "Cpa3", "Gp1bb", "Cd24a","Hoxa9", "Hoxa7", "Myb", "Epor", "Mpo", "Rhd", "Ms4a3", "Perp", "Muc13", "Plek", "F2r", "Cd93", "Rag1", "Ccl9", "Ccr9", "Ly6a"), k = 9, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE, column_label_size = 10, row_label_size = 19, colors_use_idents = c(`HSC/MPP` = "#00AFBB", `GMP/GP` = "grey60", Mono = "#FBE426", Mac = "darkorange2", MCP = "#E2E2E2", MEP = "#F6222E", Mk1 = "#DEA0FD",  Mk2 = "#F8A19F", `Prim-EB` = "#1C8356", EP1 = "#16FF32", EP2 = "#F7E1A0", EP3 = "#1CFFCE",   PEB1 = "#2ED9FF", PEB2 = "#C4451C", PEB3 = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red"))
 
 #dev.off()
 ```

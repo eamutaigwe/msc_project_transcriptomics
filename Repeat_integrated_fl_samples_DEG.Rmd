@@ -784,6 +784,20 @@ write.csv(EP_upgene_group2_top50,
 
 
 
+```{r}
+EP_downgene_group1_top300 <- read_csv(here("DE_analysis/results/EP_downgene_group1_top300.csv"))
+EP_upgene_group2_top300 <- read_csv(here("DE_analysis/results/EP_upgene_group2_top300.csv"))
+
+EP_downgene_group1_top300 <- as.data.frame(EP_downgene_group1_top300)
+EP_upgene_group2_top300 <- as.data.frame(EP_upgene_group2_top300)
+
+EP_downgene_group1_top300 <- EP_downgene_group1_top300$x
+EP_upgene_group2_top300 <- EP_upgene_group2_top300$x
+```
+
+
+
+
 
 # GO ANALYSIS OF DIFFERENTIALLY EXPRESSED ERYTHROID PROGENITOR GENES. I did pathway enrichment instead
 
@@ -822,24 +836,61 @@ EP_downgene_group1_top300_BP@result$Description <- EP_downgene_group1_top300_BP@
 ```
 
 
+```{r}
+# Select terms of interest for down-regulated genes - REACTOME
+categorys2 <- c("PLATELET_ACTIVATION_SIGNALING_AND_AGGREGATION", "RESPONSE_TO_ELEVATED_PLATELET_CYTOSOLIC_CA2", "GPVI_MEDIATED_ACTIVATION_CASCADE", "PLATELET_AGGREGATION_PLUG_FORMATION", "PLATELET_ADHESION_TO_EXPOSED_COLLAGEN")  
+#select Reactome terms of interest
+
+# Select terms of interest for down-regulated genes - BP
+categorys3 <- c("PLATELET_ACTIVATION", "MYELOID_CELL_ACTIVATION_INVOLVED_IN_IMMUNE_RESPONSE", "MYELOID_CELL_DIFFERENTIATION")  
+#select Reactome terms of interest
+```
+
 
 # PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
 ```{r}
 # Select terms of interest for up-regulated genes (top 10 significant terms)
 
 # Plot up-regulated genes
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_downgene_group1_top300_Reactome.pdf", width = 15, height = 15)
-a <- barplot(EP_downgene_group1_top300_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - downreg. genes in E12.5 and E14.5 EP", label_format = 30)
+#tiff(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_downgene_group1_top300_Reactome.tif", width = 15, height = 15)
+a <- barplot(EP_downgene_group1_top300_Reactome, x = "Count", color = "p.adjust", showCategory = categorys2, font.size = 20, title = "REACTOME- downreg. genes in E12.5 and E14.5 EPs", label_format = 30) +
+theme(axis.text.x = element_text(face = "bold", size = 25)) +
+theme(axis.text.y = element_text(face = "bold", size = 25)) +
+theme(plot.title = element_text(size = 25, face = "bold")) +
+theme(axis.title.x = element_text(size = 25, face = "bold")) +
+theme(legend.text = element_text(size = 25, face = "bold")) +
+theme(legend.title = element_text(size = 25, face = "bold")) +
+guides(color = guide_legend(override.aes = list(size = 5)))
+#theme(axis.title.y = element_text(size = 20, face = "bold"))
 a
+
+ggsave("EP_downgene_group1_top300_Reactome.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/",
+       width = 15, height = 15, device = "tiff")
 #dev.off()
 
 
 #pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_downgene_group1_top300_BP.pdf", width = 15, height = 15)
-a <- barplot(EP_downgene_group1_top300_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30)
-a
+b <- barplot(EP_downgene_group1_top300_BP, x = "Count", color = "p.adjust", showCategory = categorys3, font.size = 20, title = "BP- downreg. genes in E12.5 and E14.5 EPs", label_format = 25) +
+theme(axis.text.x = element_text(face = "bold", size = 25)) +
+theme(axis.text.y = element_text(face = "bold", size = 25)) +
+theme(plot.title = element_text(size = 25, face = "bold")) +
+theme(axis.title.x = element_text(size = 25, face = "bold")) +
+theme(legend.text = element_text(size = 25, face = "bold")) +
+theme(legend.title = element_text(size = 25, face = "bold")) +
+guides(color = guide_legend(override.aes = list(size = 5))) +
+theme(legend.position = "right")
+#theme(axis.title.y = element_text(size = 20, face = "bold"))
+b
+
+ggsave("EP_downgene_group1_top300_BP.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/",
+       width = 15, height = 15, device = "tiff")
 #dev.off()
 ```
 
+
+# For upregulated genes, use Metascape
 
 ```{r}
 # ENRICHER
@@ -859,36 +910,95 @@ EP_upgene_group2_top300_BP@result$Description <- EP_upgene_group2_top300_BP@resu
 
 # Plot down-regulated genes
 #pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_upgene_group2_top300_Reactome.pdf", width = 15, height = 15)
-a <- barplot(EP_upgene_group2_top300_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30)
+a <- barplot(EP_upgene_group2_top300_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30) +
+theme(axis.text.x = element_text(face = "bold", size = 15)) +
+theme(axis.text.y = element_text(face = "bold", size = 15)) +
+theme(plot.title = element_text(size = 20, face = "bold")) +
+theme(axis.title.x = element_text(size = 20, face = "bold")) +
+theme(legend.text = element_text(size = 20, face = "bold")) +
+theme(legend.title = element_text(size = 20, face = "bold")) +
+guides(color = guide_legend(override.aes = list(size = 5)))
+#theme(axis.title.y = element_text(size = 20, face = "bold"))
+
 a
 #dev.off()
 
 #pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EP_upgene_group2_top300_BP.pdf", width = 15, height = 15)
-a <- barplot(EP_upgene_group2_top300_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30)
+a <- barplot(EP_upgene_group2_top300_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30) +
+theme(axis.text.x = element_text(face = "bold", size = 15)) +
+theme(axis.text.y = element_text(face = "bold", size = 15)) +
+theme(plot.title = element_text(size = 20, face = "bold")) +
+theme(axis.title.x = element_text(size = 20, face = "bold")) +
+theme(legend.text = element_text(size = 20, face = "bold")) +
+theme(legend.title = element_text(size = 20, face = "bold")) +
+guides(color = guide_legend(override.aes = list(size = 5)))
+#theme(axis.title.y = element_text(size = 20, face = "bold"))
+
 a
 #dev.off()
 ```
 
 
-
-
-REMEMBER TO LIST THESE GENES BELOW ON YOUR SLIDES AND SHOW PLOTS OF SOME OF THEM
-
-
 ```{r}
-# Top300 down-regulated genes enriched terms
-PLATELET_ACTIVATION_SIGNALING_AND_AGGREGATION - Tmsb4x/Rasgrp2/Gng2/Itga2b/Lat/Gng12/Cd63/Grb2/Lyn/Plcg2/Pf4/Fcer1g/Phactr2/Gnaq/Syk/Gp1bb/Prkcq/Sparc/Itgb3/Plek/Rab27b/Flna/Pecam1/Timp3/Cd9/Vav1/Gna15
-RESPONSE_TO_ELEVATED_PLATELET_CYTOSOLIC_CA2 - Tmsb4x/Itga2b/Cd63/Pf4/Phactr2/Sparc/Itgb3/Plek/Rab27b/Flna/Pecam1/Timp3/Cd9
+# Read in original Seurat object
+fl_samples_DEG_noCd45 <- readRDS("~/myproject/sc_analysis_project/msc_project/DE_analysis/data/fl_samples_DEG_noCd45.rds")
 
-# Top300 up-regulated genes enriched terms
-#erythrocyte homeostasis - Ampd3|Epb42|Dmtn|Klf1|Rb1|Rhd|Trim10|Sox6|Tmem14c|Fam210b|Tspo2|Slc25a38
-#porphyrin-containing compound metabolic process - Hebp1|Hmbs|Ppox|Spta1|Sptb|Uros|Tmem14c
-#cellular response to copper ion - Aqp1|Mt2|Nfe2l2|Prnp|Snca
 ```
 
 
 
+#Code copied from [https://divingintogeneticsandgenomics.rbind.io/post/stacked-violin-plot-for-visualizing-single-cell-data-in-seurat/]
+```{r}
+## remove the x-axis text and tick
+## plot.margin to adjust the white space between each plot.
+## ... pass any arguments to VlnPlot in Seurat
+modify_vlnplot<- function(obj, 
+                          feature, 
+                          pt.size = 0, 
+                          plot.margin = unit(c(-0.75, 0, -0.75, 0), "cm"),
+                          ...) {
+  p<- VlnPlot(obj, features = feature, pt.size = pt.size, ... )  + 
+    xlab("") + ylab(feature) + ggtitle("") + 
+    theme(legend.position = "none", 
+          axis.text.x = element_blank(),
+          plot.title = element_blank(),
+          axis.title.x = element_blank(),
+          axis.ticks.x = element_blank(), 
+          axis.title.y = element_text(size = rel(1), angle = 0, face = "bold"), 
+          axis.text.y = element_text(size = rel(1)), 
+          plot.margin = plot.margin ) + geom_boxplot(outlier.shape = NA) 
+  return(p)
+}
 
+## extract the max value of the y axis
+extract_max<- function(p){
+  ymax<- max(ggplot_build(p)$layout$panel_scales_y[[1]]$range$range)
+  return(ceiling(ymax))
+}
+
+
+## main function
+StackedVlnPlot<- function(obj, features,
+                          pt.size = 0, 
+                          plot.margin = unit(c(-0.75, 0, -0.75, 0), "cm"),
+                          ...) {
+  
+  plot_list<- purrr::map(features, function(x) modify_vlnplot(obj = obj,feature = x, ...))
+  
+  # Add back x-axis title to bottom plot. patchwork is going to support this?
+  plot_list[[length(plot_list)]]<- plot_list[[length(plot_list)]] +
+    theme(axis.text.x=element_text(angle = 45, face = "bold"), axis.ticks.x = element_line())
+  
+  # change the y-axis tick to only max value 
+  ymaxs<- purrr::map_dbl(plot_list, extract_max)
+  plot_list<- purrr::map2(plot_list, ymaxs, function(x,y) x + 
+                            scale_y_continuous(breaks = c(y)) + 
+                            expand_limits(y = y))
+
+  p<- patchwork::wrap_plots(plotlist = plot_list, ncol = 1)
+  return(p)
+}
+```
 
 
 
@@ -896,43 +1006,82 @@ RESPONSE_TO_ELEVATED_PLATELET_CYTOSOLIC_CA2 - Tmsb4x/Itga2b/Cd63/Pf4/Phactr2/Spa
 cols_sample_group <- c( "#F6222E", "dodgerblue3", "#1C8356")
 
 # Key megakaryocyte genes down-regulated in E12.5 and E14.5 erythroid progenitors only
-#par(mfrow=c(1,3))
-a <- VlnPlot(fl_samples_DEG_noCd45, features = c("Rasgrp2"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
-  theme(axis.text.x = element_text(face = "bold", size = 40)) +
-            theme(axis.text.y = element_text(face = "bold", size = 40)) +
-            theme(plot.title = element_text(size = 40, face = "bold")) +
-            theme(axis.title.x = element_blank()) +
-            theme(axis.title.y = element_text(size = 40, face = "bold"))
- 
+StackedVlnPlot(obj = fl_samples_DEG_noCd45, features = c("Rasgrp2", "Gp1bb", "Plek", "Pf4"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group, slot = "data")
 
+ggsave("stacked_violin_platelet_activation_signaling_aggregation.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+
+
+```{r}
+
+DefaultAssay(fl_samples_DEG_noCd45) <- "RNA"
+# Key megakaryocyte genes down-regulated in E12.5 and E14.5 erythroid progenitors only
+#par(mfrow=c(1,3))
+a <- VlnPlot(fl_samples_DEG_noCd45, features = c("Rasgrp2", "Gp1bb", "Plek", "Pf4"), group.by = "sample_group", add.noise = FALSE, pt.size = 0,  stack = TRUE, flip = TRUE) + NoLegend() +
+  theme(axis.text.y = element_text(face = "bold", size = 30)) +
+            theme(axis.text.x = element_text(face = "bold", size = 30)) +
+  theme(axis.title.y = element_text(size = 30, face = "bold")) 
+
+a
+
+ggsave("platelet_activation_signaling_aggregation.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures",
+       width = 17, height = 15, device = "tiff")
+```
+ 
+ 
+ 
+```{r}
 b <- VlnPlot(fl_samples_DEG_noCd45, features = c("Gp1bb"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
   theme(axis.text.x = element_text(face = "bold", size = 40)) +
-            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            #theme(axis.text.y = element_text(face = "bold", size = 40)) +
             theme(plot.title = element_text(size = 40, face = "bold")) +
             theme(axis.title.x = element_blank()) +
-            theme(axis.title.y = element_blank())
+            theme(axis.title.y = element_blank()) +
+            theme(axis.text.y = element_blank()) 
 
 
 c <- VlnPlot(fl_samples_DEG_noCd45, features = c("Plek"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
   theme(axis.text.x = element_text(face = "bold", size = 40)) +
-            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            #theme(axis.text.y = element_text(face = "bold", size = 40)) +
             theme(plot.title = element_text(size = 40, face = "bold")) +
             theme(axis.title.x = element_blank()) +
-            theme(axis.title.y = element_blank())
+            theme(axis.title.y = element_blank()) +
+            theme(axis.text.y = element_blank()) 
 
 d <- VlnPlot(fl_samples_DEG_noCd45, features = c("Pf4"), group.by = "sample_group", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + NoLegend() +
   theme(axis.text.x = element_text(face = "bold", size = 40)) +
-            theme(axis.text.y = element_text(face = "bold", size = 40)) +
+            #theme(axis.text.y = element_text(face = "bold", size = 40)) +
             theme(plot.title = element_text(size = 40, face = "bold")) +
             theme(axis.title.x = element_blank()) +
-            theme(axis.title.y = element_blank())
- 
+            theme(axis.title.y = element_blank()) +
+            theme(axis.text.x = element_blank())
 a|b|c|d
 
 ggsave("platelet_activation_signaling_aggregation.tif",
        path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures",
        width = 17, height = 15, device = "tiff", dpi = 300)
 ```
+
+
+```{r}
+# Key erthroid genes up-regulated in E12.5 and E14.5 erythroid progenitors
+a <- VlnPlot(fl_samples_DEG_noCd45, features = c("Klf1", "Sox6", "Epb42", "Tmem14c"), group.by = "sample_group", add.noise = FALSE, pt.size = 0,  stack = TRUE, flip = TRUE) + NoLegend() +
+  theme(axis.text.y = element_text(face = "bold", size = 30)) +
+            theme(axis.text.x = element_text(face = "bold", size = 30)) +
+  theme(axis.title.y = element_text(size = 30, face = "bold")) 
+
+a
+
+ggsave("erythrocyte homeostasis.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures",
+       width = 17, height = 15, device = "tiff")
+```
+
 
 
 ```{r}

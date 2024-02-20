@@ -873,7 +873,7 @@ ggplot(ncells_E12.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
         plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) +
         theme(axis.title.x = element_text(size =50, face = "bold")) +
         theme(axis.title.y = element_text(size = 50, face = "bold")) +
-  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 11, face = "bold") +
+  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 15, face = "bold") +
   #scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
   scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
   xlab("Cell types") + 
@@ -883,7 +883,7 @@ ggplot(ncells_E12.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
 
 ggsave("repeated_cellsincluster_fl_samples_E12.5_12May_named.tif",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots",
-       width = 17, height = 15, device = "tiff", dpi = 500)
+       width = 17, height = 15, device = "tiff")
 ```
 
 
@@ -2811,7 +2811,7 @@ ggplot(ncells_E12.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
         plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) +
         theme(axis.title.x = element_text(size =50, face = "bold")) +
         theme(axis.title.y = element_text(size = 50, face = "bold")) +
-  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 11, face = "bold") +
+  geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 15, face = "bold") +
   #scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
   scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
   xlab("Cell types") + 
@@ -2821,7 +2821,7 @@ ggplot(ncells_E12.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
 
 ggsave("repeated_cellsincluster_fl_samples_E12.5_12May_named_subset_regressed_named.tif",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots",
-       width = 17, height = 15, device = "tiff", dpi = 500)
+       width = 17, height = 15, device = "tiff")
 ```
 
 
@@ -4038,13 +4038,13 @@ fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex <- SCTransform(fl_sa
 # Fetal liver
 fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex <-  RenameIdents(object = fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex,
                                                   "EP1a" = "female",
-                                                  "EP1b" = "mostly_male",
+                                                  "EP1b" = "male",
                                                   "EP2a" = "female",
-                                                  "EP2b" = "mostly_male",
+                                                  "EP2b" = "male",
                                                   "EP3b" = "female",
-                                                  "EP4b" = "mostly_male",
-                                                  "EP5b" = "mostly_male",
-                                                  "EP6b" = "mostly_male")
+                                                  "EP4b" = "male",
+                                                  "EP5b" = "male",
+                                                  "EP6b" = "male")
 
 fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex$cluster_ident <- Idents(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex)
 
@@ -4057,7 +4057,7 @@ table(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex$cluster_ident,
 
 ```{r}
 # Set colors
-clust_cols_EP_sex <- c(female = "#16FF32", mostly_male = "goldenrod1")
+clust_cols_EP_sex <- c(female = "#16FF32", male = "goldenrod1")
 ```
 
 
@@ -4077,83 +4077,98 @@ DimPlot(object = fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex,
 
 
 
-# DIFFERENTIAL GENE EXPRESSION BETWEEN female and mostly_male. THE CORRECT NAMES ARE MALE AND FEMALE
+# DIFFERENTIAL GENE EXPRESSION BETWEEN female and male. THE CORRECT NAMES ARE MALE AND FEMALE
 
 ```{r}
-female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex <- FindMarkers(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex, 
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex <- FindMarkers(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex, 
                                   ident.1 = "female",
-                                  ident.2 = "mostly_male",
+                                  ident.2 = "male",
                                   assay = "SCT",
                                   logfc.threshold = 0,
                                   min.cells.feature = 3,
                                   min.cells.group = 3,
                                   min.pct = 0.1)
 
-female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex
 ```
 
 
 ```{r}
 # Arrange adjusted p-values
-female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex <- female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex %>% 
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex <- female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex %>% 
   dplyr::arrange("p_val_adj") %>% 
-  dplyr::mutate(gene = rownames(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex))
+  dplyr::mutate(gene = rownames(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex))
 
 # What is the total number of genes in the DE analysis?
-nrow(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex)
+nrow(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex)
 
 # How many genes have significant adjusted p-values,  that is differentially expressed?
-female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif <- female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex %>% dplyr::filter(p_val_adj < 0.05)
-nrow(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif)
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif <- female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex %>% dplyr::filter(p_val_adj < 0.05)
+nrow(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif)
 
 # How many genes are upregulated?
-(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg <- female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif %>% 
+(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg <- female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif %>% 
                               dplyr::filter(avg_log2FC > 0))
-nrow(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg)
+nrow(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg)
 
 # How many genes are down-regulated?
-(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg <- female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif %>% 
+(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg <- female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif %>% 
                               dplyr::filter(avg_log2FC < 0))
-nrow(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg)
+nrow(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg)
 ```
 
 
 
 ```{r}
 # Save the DEGs (all genes, not just the significant ones)
-saveRDS(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex,
-          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex.rds")))
-write.csv(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex,
-          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex.csv")))
+saveRDS(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex,
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex.rds")))
+write.csv(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex,
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex.csv")))
 
 # Save significant DEGs
-saveRDS(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif,
-          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.rds")))
+saveRDS(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif,
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.rds")))
 
-write.csv(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif,
-          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.csv")))
+write.csv(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif,
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.csv")))
 
 # Save upregulated genes
-saveRDS(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg,
-          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg.rds")))
-write.csv(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg,
-          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg.csv")))
+saveRDS(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg,
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg.rds")))
+write.csv(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg,
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_upreg.csv")))
 
 # Save downregulated genes
-saveRDS(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg,
-          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg.rds")))
-write.csv(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg,
-          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg.csv")))
+saveRDS(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg,
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg.rds")))
+write.csv(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg,
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downreg.csv")))
 ```
 
 
 
 ```{r}
-EnhancedVolcano(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif, 
+# Extract the count matrix from the seurat object, convert to dataframe for joining to significant female vs male genes
+counts <- fl_samples_E12.5_12May_named_subset_regressed_named_EPs@assays$SCT@counts %>% as.data.frame() %>% rownames_to_column("gene")
+
+# Extract significant genes from female vs male comparison
+genes <- female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif %>% dplyr::select(gene)
+
+# Filter original Seurat object to retain only the significant genes
+counts <- inner_join(counts, genes, by = "gene") %>% as.matrix()
+```
+
+
+
+
+
+```{r}
+EnhancedVolcano(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif, 
                 x = "avg_log2FC", 
                 y = "p_val_adj", 
-                xlim = c(min(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
-                lab = rownames(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif),
+                xlim = c(min(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif),
                 pCutoff = 10e-5,
                 pointSize = 6,
                 labSize = 10,
@@ -4169,11 +4184,11 @@ EnhancedVolcano(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_E
                 col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
                 title = "", 
                 ylab = "-log10(p-val adj)", 
-                subtitle = "E12.5 females vs mostly_males sex and sexgenes regressed", 
+                subtitle = "E12.5 Differential Gene Expression: Female vs Male EPs", 
                 legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
                 ~ log[2] ~ FC)))
 
-ggsave("volcano_female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.pdf",
+ggsave("volcano_female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.pdf",
        path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E12.5/",
        width = 15, height = 15)
 ```
@@ -4183,7 +4198,7 @@ ggsave("volcano_female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_E
 
 ```{r}
 # Read in significant Erythroid progenitor genes
-female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif <- read_csv(here("DE_analysis/results/FL_E12.5", "female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.csv"))
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif <- read_csv(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.csv"))
 ```
 
 
@@ -4272,7 +4287,7 @@ which(is.na(annotations$entrezid)) %>% length()
 
 ```{r}
 # Merge annotations dataframe with our significant genes
-female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_anno <- left_join(female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif, annotations, by = c("gene" = "gene_name"))
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_anno <- left_join(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif, annotations, by = c("gene" = "gene_name"))
 ```
 
 
@@ -4283,10 +4298,10 @@ female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_an
 #EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif_anno <- #dplyr::filter(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif_anno, !is.na(gene_id))
 
 # Get the log2 fold change
-gene_list <- female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_anno$avg_log2FC
+gene_list <- female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_anno$avg_log2FC
 
 # Name the vector
-names(gene_list) <- female_vs_mostly_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_anno$gene
+names(gene_list) <- female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif_anno$gene
 
 # Omit NA values
 #gene_list <- na.omit(names(gene_list))
@@ -4299,7 +4314,7 @@ gene_list <- sort(gene_list, decreasing = TRUE)
 
 ```{r}
 mydf <- data.frame(gene = names(gene_list), FC = gene_list)
-mydf$group <- with(mydf, ifelse(FC > 0, "Female", "Mostly_male"))
+mydf$group <- with(mydf, ifelse(FC > 0, "Female", "Male"))
 ```
 
 
@@ -4315,17 +4330,19 @@ as.data.frame(enrichedterm_res)
 
 
 ```{r}
-clusterProfiler::dotplot(enrichedterm_res, showCategory = 10) +
-theme(axis.text.x = element_text(face = "bold", size = 15)) +
-theme(axis.text.y = element_text(face = "bold", size = 15)) +
-theme(plot.title = element_text(size = 20, face = "bold")) +
-theme(axis.title.x = element_text(size = 20, face = "bold")) +
-theme(legend.text = element_text(size = 20, face = "bold")) +
-theme(legend.title = element_text(size = 20, face = "bold")) +
+clusterProfiler::dotplot(enrichedterm_res, showCategory = 9, size = "count") +
+theme(axis.text.x = element_text(face = "bold", size = 25)) +
+theme(axis.text.y = element_text(face = "bold", size = 25)) +
+theme(plot.title = element_text(size = 25, face = "bold")) +
+theme(axis.title.x = element_text(size = 25, face = "bold")) +
+theme(legend.text = element_text(size = 25, face = "bold")) +
+theme(legend.title = element_text(size = 25, face = "bold")) +
 guides(color = guide_legend(override.aes = list(size = 5)))
 #theme(axis.title.y = element_text(size = 20, face = "bold"))
 
-
+ggsave("GO_female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E12.5/",
+       width = 15, height = 15, device = "tiff")
 ```
 
 
@@ -4359,14 +4376,20 @@ as.data.frame(enrichedreactome_res)
 ```{r}
 categories <- c("CELLULAR_RESPONSE_TO_CHEMICAL_STRESS", "METABOLISM_OF_PORPHYRINS", "GLYCOLYSIS", "HEME_BIOSYNTHESIS", "GLUCONEOGENESIS", "GLUCOSE_METABOLISM", "METABOLISM_OF_CARBOHYDRATES", "RRNA_PROCESSING", "RRNA_MODIFICATION_IN_THE_NUCLEUS_AND_CYTOSOL", "MITOTIC_METAPHASE_AND_ANAPHASE", "MITOCHONDRIAL_PROTEIN_IMPORT", "CYTOPROTECTION_BY_HMOX1", "DETOXIFICATION_OF_REACTIVE_OXYGEN_SPECIES")
 
-clusterProfiler::dotplot(enrichedreactome_res, showCategory = categories) +
-  theme(axis.text.x = element_text(face = "bold", size = 15)) +
-theme(axis.text.y = element_text(face = "bold", size = 15)) +
-theme(plot.title = element_text(size = 20, face = "bold")) +
-theme(axis.title.x = element_text(size = 20, face = "bold")) +
-theme(legend.text = element_text(size = 20, face = "bold")) +
-theme(legend.title = element_text(size = 20, face = "bold")) +
+clusterProfiler::dotplot(enrichedreactome_res, showCategory = categories, size = "count") +
+  theme(axis.text.x = element_text(face = "bold", size = 25)) +
+theme(axis.text.y = element_text(face = "bold", size = 25)) +
+theme(plot.title = element_text(size = 25, face = "bold")) +
+theme(axis.title.x = element_text(size = 25, face = "bold")) +
+theme(legend.text = element_text(size = 25, face = "bold")) +
+theme(legend.title = element_text(size = 25, face = "bold")) +
 guides(color = guide_legend(override.aes = list(size = 5)))
+
+
+ggsave("REACOME_female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.tif",
+       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E12.5/",
+       width = 15, height = 15, device = "tiff")
+
 ```
 
 
