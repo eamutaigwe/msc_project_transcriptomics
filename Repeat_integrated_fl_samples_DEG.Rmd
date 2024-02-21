@@ -1133,6 +1133,7 @@ ggsave("erythrocyte homeostasis.tif",
 
 ```{r}
 # Rename original seurat object to prevent tampering with it
+EP_downgene_group1 <- readRDS("~/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/EP_downgene_group1.rds")
 fl_samples_DEG_noCd45_sex <- fl_samples_DEG_noCd45
 ```
 
@@ -1283,6 +1284,8 @@ EP_upgene_group2_top300 <- read_csv(here("DE_analysis/results/", "EP_upgene_grou
 
 
 ```{r}
+library(SCENIC)
+library(AUCell)
 # Read in already saved scenicOptions object (computed on Compute Canada)
 scenicOptions_EP1 <- readRDS("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/int/scenicOptions_EP1.rds")
 EP_downgene_group1_cellInfo <- readRDS("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/int/EP_downgene_group1_cellInfo.rds")
@@ -1346,9 +1349,11 @@ annotation_col <-  data.frame(Cluster=unique(EP_downgene_group1_cellInfo$cluster
 annotation_colors <- list(Timepoint=cols_sample_group)
 
 rownames(regulonActivity_bySample_group_Scaled) <- gsub("_extended", "", rownames(regulonActivity_bySample_group_Scaled))
+
+regulonActivity_bySample_group_Scaled <- regulonActivity_bySample_group_Scaled %>% as.data.frame() %>% rownames_to_column("TF") %>%  dplyr::filter(!(TF %in% c("Etv6 (700g)", "Rreb1 (522g)", "Esrra (908g)", "Zmiz1 (957g)", "Runx1 (19g)"))) %>% column_to_rownames("TF") %>% as.matrix()
                                         
 
-#pdf(file="/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/EP_downgene_group1_heatmap.pdf", width = 25, height =25)
+tiff(file="/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/EP_downgene_group1_heatmap.tif", width = 800, height =800)
 heat1 <- ComplexHeatmap::Heatmap(regulonActivity_bySample_group_Scaled, name="Regulon act.",
                         cluster_columns = FALSE,
                         show_column_dend = FALSE,
@@ -1369,59 +1374,138 @@ heat1 <- ComplexHeatmap::Heatmap(regulonActivity_bySample_group_Scaled, name="Re
                         use_raster = TRUE,
                         raster_quality = 4)
 draw(heat1)
-#dev.off()
+dev.off()
+
+
+
 
 ```
-
-
-
-```{r}
-regulon_auc_score_EP1 <- as.data.frame(regulon_auc_score_EP1)
-rownames(regulon_auc_score_EP1) <- gsub("_extended", "", rownames(regulon_auc_score_EP1))
-
-# Create a Seurat object 
-EP1_scenic_seurat <- CreateSeuratObject(counts = as.matrix(regulon_auc_score_EP1),
-                                                   meta.data = EP_downgene_group1_cellInfo)
-```
-
-
-
-```{r}
-VlnPlot(EP1_scenic_seurat, features = c("Spi1 (224g)"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + 
-labs(y = "Regulon activity score") + 
-NoLegend()
-
-VlnPlot(Ery1_scenic_seurat, features = c("Gata1 (114g)"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + 
-labs(y = "Regulon activity score") + 
-NoLegend()
-
-VlnPlot(Ery1_scenic_seurat, features = c("Sox6 (18g)"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + 
-labs(y = "Regulon activity score") + 
-NoLegend()
-
-VlnPlot(Ery1_scenic_seurat, features = c("Nfia (10g)"), group.by = "sample_grp", add.noise = FALSE, pt.size = 0, cols = cols_sample_group) + 
-labs(y = "Regulon activity score") + 
-NoLegend()
-
-#Mk_gene_group1_seurat[["scenic_regulon_auc_score"]] <- CreateAssayObject(data =  regulon_auc_score)"Gata1 (36g)",,"Sox6 (16g)"
-```
-
-
-# Check expression levels of key genes in the up- and down-regulated groups
-```{r}
-Erythroblast_upgene_group1_expression <- fl_samples_deg_sce[Erythroblast_upgene_group1$genes, fl_samples_deg_sce$cluster_ident == "Erythroblast"]
-Erythroblast_downgene_group2_expression <- fl_samples_deg_sce[Erythroblast_downgene_group2$genes, fl_samples_deg_sce$cluster_ident == "Erythroblast"]
-```
-
-
-
-
-
-
 
 ## EP_upgene_group2
 
 REPEAT SCENIC ON EP_upgene_group2
+
+
+# Run the analysis on Compute Canada
+# Use the Rscript ~/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP1/computecanadascenicEP1.R
+# This analysis was run long before sex was inferred, so the seurat object used didn't have the sex column in the metadata
+
+
+```{r}
+library(SCENIC)
+library(AUCell)
+# Read in already saved scenicOptions object (computed on Compute Canada)
+scenicOptions_EP2 <- readRDS("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2/int/scenicOptions_EP2.rds")
+EP_upgene_group2_cellInfo <- readRDS("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2/int/EP_upgene_group2_cellInfo.rds")
+scenicOptions_EP2@inputDatasetInfo$cellInfo <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2/int/EP_upgene_group2_cellInfo.rds"
+scenicOptions_EP2@settings$dbDir <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2"
+```
+
+
+
+```{r}
+# Add sex column to cellInfo
+# Add a column for joining
+EP_upgene_group2_cellInfo <- EP_upgene_group2_cellInfo %>% dplyr::mutate(cells = rownames(EP_upgene_group2_cellInfo))
+
+# Extract seurat metadata for easy manipulation and select relevant columns
+fl_samples_DEG_noCd45_sex_meta <- fl_samples_DEG_noCd45_sex@meta.data
+fl_samples_DEG_noCd45_sex_meta <- fl_samples_DEG_noCd45_sex_meta %>% dplyr::select(cells, sex)
+
+# Add sex column to cellInfo object
+EP_upgene_group2_cellInfo <- left_join(EP_upgene_group2_cellInfo, fl_samples_DEG_noCd45_sex_meta, by = "cells")
+EP_upgene_group2_cellInfo <- EP_upgene_group2_cellInfo %>% column_to_rownames("cells")
+```
+
+
+```{r}
+# Save cellInfo
+saveRDS(EP_upgene_group2_cellInfo, "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2/int/EP_upgene_group2_cellInfo_withsex.rds")
+```
+
+
+
+```{r}
+# Add cellInfo to scenicOptions object
+scenicOptions_EP2@inputDatasetInfo$cellInfo <- "/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2/int/EP_upgene_group2_cellInfo_withsex.rds"
+```
+
+
+
+```{r}
+setwd("/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2")
+set.seed(181)
+regulons <- loadInt(scenicOptions_EP2, "regulons")
+
+regulonAUC <- loadInt(scenicOptions_EP2, "aucell_regulonAUC")
+
+# Extract AUC scores of regulons 
+regulon_auc_score_EP2 <- getAUC(regulonAUC)
+
+regulonAUC <- regulonAUC[onlyNonDuplicatedExtended(rownames(regulonAUC)),]
+regulonActivity_bySample_group <- sapply(split(rownames(EP_upgene_group2_cellInfo), EP_upgene_group2_cellInfo$sample_grp),
+                                     function(allcells) rowMeans(getAUC(regulonAUC)[,allcells]))
+regulonActivity_bySample_group_Scaled <- t(scale(t(regulonActivity_bySample_group), center = T, scale=T))
+
+
+cols_sample_group <- c(E10.5 = "#CF9400", E12.5 = "#7997FF", E14.5 = "#AC88FF")
+
+
+annotation_col <-  data.frame(Cluster=unique(EP_upgene_group2_cellInfo$cluster_ident),
+                              Timepoint=unique(EP_upgene_group2_cellInfo$sample_grp))
+                              #Sex=EP_downgene_group1_cellInfo$sex)
+annotation_colors <- list(Timepoint=cols_sample_group)
+
+rownames(regulonActivity_bySample_group_Scaled) <- gsub("_extended", "", rownames(regulonActivity_bySample_group_Scaled))
+
+regulonActivity_bySample_group_Scaled <- regulonActivity_bySample_group_Scaled %>% as.data.frame() %>% rownames_to_column("TF") %>%  dplyr::filter(!(TF %in% c("Cebpz (21g)", "Pml (298g)", "Gtf2f1 (85g)", "Hdac2 (212g)", "Ddit3 (10g)"))) %>% column_to_rownames("TF") %>% as.matrix()
+                                        
+
+tiff(file="/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2/EP_upgene_group2_heatmap.tif", width = 800, height =800)
+heat1 <- ComplexHeatmap::Heatmap(regulonActivity_bySample_group_Scaled, name="Regulon act.",
+                        cluster_columns = FALSE,
+                        show_column_dend = FALSE,
+                        cluster_column_slices = FALSE,
+                        #column_title_gp = gpar(fontsize = 8),
+                        #column_gap = unit(0.5, "mm"),
+                        row_names_gp = gpar(fontsize = 25),
+                        cluster_rows = TRUE,
+                        show_row_dend = FALSE,
+                        #col = viridisLite::viridis(length(mat_breaks) - 1),
+                        #row_names_gp = gpar(fonsize = 4),
+                        column_title_rot = 45,
+                        top_annotation = HeatmapAnnotation(df = annotation_col, col = annotation_colors, show_legend = TRUE, show_annotation_name = FALSE, annotation_legend_param = list(labels_gp = gpar(fontsize = 30),  title_gp = gpar(fontsize = 30, fontface = "bold"))),
+                        show_column_names = FALSE,
+                         heatmap_legend_param = list(labels_gp = gpar(fontsize = 30), title_gp = gpar(fontsize = 30, fontface = "bold")),
+                        width = 25,
+                        height = 25,
+                        use_raster = TRUE,
+                        raster_quality = 4)
+draw(heat1)
+dev.off()
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
