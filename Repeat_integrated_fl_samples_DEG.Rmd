@@ -1461,7 +1461,7 @@ rownames(regulonActivity_bySample_group_Scaled) <- gsub("_extended", "", rowname
 regulonActivity_bySample_group_Scaled <- regulonActivity_bySample_group_Scaled %>% as.data.frame() %>% rownames_to_column("TF") %>%  dplyr::filter(!(TF %in% c("Cebpz (21g)", "Pml (298g)", "Gtf2f1 (85g)", "Hdac2 (212g)", "Ddit3 (10g)"))) %>% column_to_rownames("TF") %>% as.matrix()
                                         
 
-tiff(file="/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2/EP_upgene_group2_heatmap.tif", width = 800, height =800)
+#tiff(file="/Users/ekperekaamutaigwe/myproject/sc_analysis_project/msc_project/cisTarget_databases_EP2/EP_upgene_group2_heatmap.tif", width = 800, height =800)
 heat1 <- ComplexHeatmap::Heatmap(regulonActivity_bySample_group_Scaled, name="Regulon act.",
                         cluster_columns = FALSE,
                         show_column_dend = FALSE,
@@ -1482,7 +1482,7 @@ heat1 <- ComplexHeatmap::Heatmap(regulonActivity_bySample_group_Scaled, name="Re
                         use_raster = TRUE,
                         raster_quality = 4)
 draw(heat1)
-dev.off()
+#dev.off()
 
 
 

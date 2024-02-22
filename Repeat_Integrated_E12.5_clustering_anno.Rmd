@@ -4149,21 +4149,6 @@ write.csv(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_downre
 
 
 ```{r}
-# Extract the count matrix from the seurat object, convert to dataframe for joining to significant female vs male genes
-counts <- fl_samples_E12.5_12May_named_subset_regressed_named_EPs@assays$SCT@counts %>% as.data.frame() %>% rownames_to_column("gene")
-
-# Extract significant genes from female vs male comparison
-genes <- female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif %>% dplyr::select(gene)
-
-# Filter original Seurat object to retain only the significant genes
-counts <- inner_join(counts, genes, by = "gene") %>% as.matrix()
-```
-
-
-
-
-
-```{r}
 EnhancedVolcano(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif, 
                 x = "avg_log2FC", 
                 y = "p_val_adj", 
@@ -4513,6 +4498,50 @@ draw(heat)
 ```
 
 
+# PREPARE MALE AND FEMALE EPs FOR GENE TREND CHANGES USING PALANTIR AND CELLRANK
+
+
+## Subset clusters of interest. 
+
+```{r, eval=FALSE}
+fl_samples_E12.5_12May_named_subset_male <- subset(fl_samples_E12.5_12May_named_subset_regressed_named, idents =c("MEP","EP1b", "EP2b", "EP3b", "EP4b", "EP5b","EP6b", "PEBb"))
+
+fl_samples_E12.5_12May_named_subset_female <- subset(fl_samples_E12.5_12May_named_subset_regressed_named, idents =c("MEP","EP1a", "EP2a","PEBa"))
+
+```
+
+
+
+```{r}
+# SCTransform the subset Ery object
+fl_samples_E12.5_12May_named_subset_male <- SCTransform(fl_samples_E12.5_12May_named_subset_male,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score", "Sex_Genes1", "sex"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+
+```{r}
+# SCTransform the subset Ery object
+fl_samples_E12.5_12May_named_subset_female <- SCTransform(fl_samples_E12.5_12May_named_subset_female,
+                                   vst.flavor = "v2",
+                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score", "Sex_Genes1", "sex"),
+                                   variable.features.n = 3000,
+                                   verbose = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
 ## PREPARE EPs FOR SCENIC (TF inference)
 
 ```{r}
@@ -4567,14 +4596,3 @@ Idents(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex) <- fl_sample
 ```
 
 
-# DIFFERENTIAL GENE EXPRESSION BETWEEN Male and Female
-
-```{r}
-Male_vs_Female_E12.5_regressedsexandsexgenes_nosexdoublets <- FindMarkers(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex, 
-                                  ident.1 = "Male",
-                                  ident.2 = "Female",
-                                  assay = "SCT",
-                                  min.pct = 0.3)
-
-Male_vs_Female_E12.5_regressedsexandsexgenes_nosexdoublets
-```
