@@ -4318,6 +4318,7 @@ saveRDS(fl_samples_E12.5_12May_named_subset, "~/myproject/sc_analysis_project/ms
 saveRDS(fl_samples_E12.5_12May_named_subset_nosexdoublets, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_nosexdoublets_notregressed.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named.rds")
+saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named_MERGED_EPs_Mks.rds")
 saveRDS(markers_fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/markers_fl_samples_E12.5_12May_named_subset_regressed_named.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named_EPs, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex.rds")
