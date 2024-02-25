@@ -27,23 +27,18 @@ library(R.utils)
 
 ```{r, eval=FALSE}
 # Read in Fetal liver E12.5 data
-fl_samples_E12.5_12May_named_subset <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/repeated_fl_samples_E12.5_12May_named_subset.rds")
+fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named.rds")
 ```
 
 
 
 ```{r}
-#dir.create("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data")
-#dir.create("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E12.5")
-```
-
-```{r}
-fl_samples_E12.5_12May_named_subset_palantir <- fl_samples_E12.5_12May_named_subset
+fl_samples_E12.5_12May_named_subset_palantir <- fl_samples_E12.5_12May_named_subset_regressed_named
 E12.5_metadata <- fl_samples_E12.5_12May_named_subset_palantir@meta.data 
 E12.5_metadata <- E12.5_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident))
 fl_samples_E12.5_12May_named_subset_palantir@meta.data <- E12.5_metadata
 
-write.csv(fl_samples_E12.5_12May_named_subset_palantir@meta.data, "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E12.5/E12.5_palantir_metadata.csv", quote = F, row.names = F) 
+write.csv(fl_samples_E12.5_12May_named_subset_palantir@meta.data, "~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E12.5/E12.5_palantir_metadata.csv", quote = F, row.names = F) 
 ```
 
 
@@ -51,7 +46,7 @@ write.csv(fl_samples_E12.5_12May_named_subset_palantir@meta.data, "~/myproject/s
 ```{r}
 DefaultAssay(fl_samples_E12.5_12May_named_subset_palantir) <- "RNA"
 # Convert seurat object to AnnData
-SaveH5Seurat(fl_samples_E12.5_12May_named_subset_palantir, filename = "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_palantir.h5Seurat")
-Convert("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_palantir.h5Seurat", dest = "h5ad")
+SaveH5Seurat(fl_samples_E12.5_12May_named_subset_palantir, filename = "~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_palantir.h5Seurat")
+Convert("~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_palantir.h5Seurat", dest = "h5ad")
 ```
 

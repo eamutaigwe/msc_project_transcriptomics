@@ -2655,10 +2655,35 @@ fl_samples_E12.5_12May_named_subset_regressed_named$cluster_ident <- Idents(fl_s
 
 
 
+## Reannotate clusters in FL_E12.5 samples
+```{r}
+# Fetal liver
+fl_samples_E12.5_12May_named_subset_regressed_named <-  RenameIdents(object = fl_samples_E12.5_12May_named_subset_regressed_named,
+                                      "EP5b" = "EP2",
+                                      "EP1a" = "EP1",
+                                      "EP6b" = "EP2",
+                                      "EP1b" = "EP2",
+                                      "EP2a" = "EP1",
+                                      "EP3b" = "EP1",
+                                      "EP2b" = "EP2",
+                                      "EP4b" = "EP2",
+                                      "Mk1" = "Mk",
+                                      "Mk2" = "Mk",
+                                      "MkP" = "Mk",
+                                      "EP1a" = "EP1")
+
+fl_samples_E12.5_12May_named_subset_regressed_named$cluster_ident <- Idents(fl_samples_E12.5_12May_named_subset_regressed_named)
+
+```
+
+
 ```{r}
 # Set colors
-clust_cols_subset <- c(EP1a = "#16FF32", EP1b =  "darkorange2", EP2a = "#F7E1A0", EP2b = "#2ED9FF", EP6b = "#1CFFCE",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1", MEP = "#565656", MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")
+clust_cols_subset <- c(EP1 = "#16FF32", EP2 = "#2ED9FF", MEP = "#565656", Mk = "brown", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")
 ```
+
+c(EP1a = "#16FF32", EP1b =  "darkorange2", EP2b = "#2ED9FF", EP6b = "#1CFFCE",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1", MEP = "#565656", MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")
+
 
 
 ```{r}
@@ -2733,7 +2758,7 @@ DimPlot(object = fl_samples_E12.5_12May_named_subset_regressed_named,
 ```{r}
 # Set colors
 # Set colors
-clust_cols_subset <- c(EP1a = "#16FF32", EP1b =  "darkorange2", EP2a = "#F7E1A0", EP2b = "#2ED9FF", EP6b = "#1CFFCE",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1", MEP = "#565656", MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")
+clust_cols_subset <- c(EP1 = "#16FF32", EP2 = "#2ED9FF", MEP = "#565656", Mk = "brown", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")
 ```
 Ery4b = "#2ED9FF",Ery5b = "#90AD1C", "#85660D",
  Ery3b = "#2ED9FF",EP5a = "#325A9B",  
@@ -2786,12 +2811,12 @@ DimPlot(object = fl_samples_E12.5_12May_named_subset_regressed_named,
 
 
 ```{r}
-fl_samples_E12.5_12May_named_subset_regressed_named@active.ident <- factor(fl_samples_E12.5_12May_named_subset_regressed_named@active.ident, levels = c("MEP", "MkP", "Mk1", "Mk2", "EP1a", "EP2a", "EP1b", "EP2b", "EP3b", "EP4b", "EP5b","EP6b", "PEBa", "PEBb", "PEBc"))
+fl_samples_E12.5_12May_named_subset_regressed_named@active.ident <- factor(fl_samples_E12.5_12May_named_subset_regressed_named@active.ident, levels = c("MEP", "Mk", "EP1", "EP2", "PEBa", "PEBb", "PEBc"))
 ```
 
 
 ```{r, eval=FALSE}
-fl_samples_E12.5_12May_named_subset_regressed_named$cluster_ident <- factor(fl_samples_E12.5_12May_named_subset_regressed_named$cluster_ident, levels = c("MEP", "MkP", "Mk1", "Mk2", "EP1a", "EP2a", "EP1b", "EP2b", "EP3b", "EP4b", "EP5b","EP6b", "PEBa", "PEBb", "PEBc"))
+fl_samples_E12.5_12May_named_subset_regressed_named$cluster_ident <- factor(fl_samples_E12.5_12May_named_subset_regressed_named$cluster_ident, levels = c("MEP", "Mk", "EP1", "EP2", "PEBa", "PEBb", "PEBc"))
 ```
 
 
@@ -2805,7 +2830,7 @@ ncells_E12.5
 
 ggplot(ncells_E12.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
   geom_col() +
-  scale_fill_manual(values = c(EP1a = "#16FF32", EP1b =  "darkorange2", EP2a = "#F7E1A0", EP2b = "#2ED9FF", EP6b = "#1CFFCE",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1", MEP = "#565656", MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")) +
+  scale_fill_manual(values = c(EP1 = "#16FF32", EP2 = "#2ED9FF", MEP = "#565656", Mk = "brown", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")) +
   theme(axis.text = element_text(size = 50),
         panel.background = element_rect(fill = "white"), 
         plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) +
@@ -2813,7 +2838,7 @@ ggplot(ncells_E12.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
         theme(axis.title.y = element_text(size = 50, face = "bold")) +
   geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 15, face = "bold") +
   #scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
-  scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
+  scale_y_continuous(breaks = seq(0, 4000, by=1000), limits=c(0,4000)) +
   xlab("Cell types") + 
  # theme_bw() + 
   NoLegend() +
@@ -3506,11 +3531,12 @@ ggsave("subset_Female_marker1_fl_samples_E12.5_12May_named_subset_regressed_name
 ```{r}
 library(scCustomize)
 
-tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E12.5_12May_named_subset_regressed_named.tif", width = 560, height = 550)
-Clustered_DotPlot(seurat_object = fl_samples_E12.5_12May_named_subset_regressed_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Epor", "Gata2", "Pf4", "Vwf", "Itga2b", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Ppbp", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Gp1bb", "Cd24a", "Muc13", "Myb", "Epor", "F2r", "Myl9", "Pf4", "Alox12"), k = 4, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 20, row_label_size = 20,  colors_use_idents = c(MEP = "#565656",MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB",EP1a = "#16FF32", EP2a = "#F7E1A0", EP1b =  "darkorange2",  EP2b = "#2ED9FF",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1",  EP6b = "#1CFFCE", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red")) #+ theme(axis.text.x = element_text(size = 30))
+#tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E12.5_12May_named_subset_regressed_named.tif", width = 560, height = 550)
+Clustered_DotPlot(seurat_object = fl_samples_E12.5_12May_named_subset_regressed_named, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Epor", "Gata2", "Pf4", "Vwf", "Itga2b", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Ppbp", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Gp1bb", "Cd24a", "Muc13", "Myb", "Epor", "F2r", "Myl9", "Pf4", "Alox12"), k = 4, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 20, row_label_size = 20,  colors_use_idents = c(MEP = "#565656", Mk = "brown", EP1 = "#16FF32", EP2 = "#2ED9FF", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red")) 
+#+ theme(axis.text.x = element_text(size = 30))
   
 #row_label_fontface = "bold",
-dev.off()
+#dev.off()
 
 ```
 
@@ -3528,7 +3554,7 @@ mat <- t(scale(t(mat)))
 
 cols_sample_group <- c(FL_E12.5 = "#E2E2E2" )
 
-clust <- c("MEP", "MkP", "Mk1", "Mk2", "EP1a", "EP2a", "PEBa", "EP1b", "EP2b", "EP3b", "EP4b", "EP5b","EP6b", "PEBb", "PEBc")
+clust <- c("MEP", "Mk", "EP1", "EP2", "PEBa", "PEBb", "PEBc")
 
 clusters <- fl_samples_E12.5_12May_named_subset_regressed_named$cluster_ident
 
@@ -3585,7 +3611,7 @@ mapal <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdBu"))(256)
 DoHeatmap(subset(fl_samples_E12.5_12May_named_subset_regressed_named, downsample = 100),
           features = top_3_markers,
           group.by = "cluster_ident",
-          group.colors = c(MEP = "#565656",MkP = "#E2E2E2", Mk1 = "brown",  Mk2 = "#00AFBB",EP1a = "#16FF32", EP2a = "#F7E1A0", EP1b =  "darkorange2",  EP2b = "#2ED9FF",  EP3b = "#F8A19F", EP4b = "#90AD1C",  EP5b = "goldenrod1",  EP6b = "#1CFFCE", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), 
+          group.colors = c(MEP = "#565656", Mk = "brown", EP1 = "#16FF32", EP2 = "#2ED9FF", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), 
           angle = 45) +
           theme(text = element_text(size = 30)) +
   scale_fill_gradientn(colours = rev(mapal))
@@ -3737,182 +3763,6 @@ ggsave("subset_by_sample_umap_of_replicates_fl_samples_E12.5_12May_named_subset_
 
 ## Subset Erythroid progenitors 
 
-## Subset clusters of interest. 
-
-```{r, eval=FALSE}
-DefaultAssay(fl_samples_E12.5_12May_named_subset_regressed_named) <- "RNA"
-fl_samples_E12.5_12May_named_subset_regressed_named_EPs <- subset(fl_samples_E12.5_12May_named_subset_regressed_named, idents =c("EP1a", "EP2a", "EP1b", "EP2b", "EP3b", "EP4b", "EP5b", "EP6b"))
- 
-```
-
-
-
-```{r}
-# SCTransform the subset Ery object
-fl_samples_E12.5_12May_named_subset_regressed_named_EPs <- SCTransform(fl_samples_E12.5_12May_named_subset_regressed_named_EPs,
-                                   vst.flavor = "v2",
-                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score", "Sex_Genes1", "sex"),
-                                   variable.features.n = 3000,
-                                   verbose = FALSE)
-```
-
-
-
-## Reannotate clusters in FL_E12.5 samples for DEG analysis between erythroid progenitors
-
-```{r}
-# Fetal liver
-fl_samples_E12.5_12May_named_subset_regressed_named_EPs <-  RenameIdents(object = fl_samples_E12.5_12May_named_subset_regressed_named_EPs,
-                                                  "EP1a" = "EPa",
-                                                  "EP1b" = "EPb",
-                                                  "EP2a" = "EPa",
-                                                  "EP2b" = "EPb",
-                                                  "EP3b" = "EPb",
-                                                  "EP4b" = "EPb",
-                                                  "EP5b" = "EPb",
-                                                  "EP6b" = "EPb")
-
-fl_samples_E12.5_12May_named_subset_regressed_named_EPs$cluster_ident <- Idents(fl_samples_E12.5_12May_named_subset_regressed_named_EPs)
-
-```
-
-
-```{r}
-table(fl_samples_E12.5_12May_named_subset_regressed_named_EPs$cluster_ident, fl_samples_E12.5_12May_named_subset_regressed_named_EPs$sample_group)
-```
-     FL_E12.5
-  EPa     2239
-  EPb     3887
-
-```{r}
-# Set colors
-clust_cols_EP <- c(EPa = "#16FF32", EPb = "goldenrod1")
-```
-
-
-
-```{r}
-# Plot UMAP
-set.seed(12098)
-DimPlot(object = fl_samples_E12.5_12May_named_subset_regressed_named_EPs,
-        reduction = "umap",
-        cols = clust_cols_EP,
-        label = TRUE,
-        label.size = 6,
-        pt.size = 1.5) + NoLegend()
-
-
-```
-
-
-
-# DIFFERENTIAL GENE EXPRESSION BETWEEN EPa and EPb
-
-```{r}
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets <- FindMarkers(fl_samples_E12.5_12May_named_subset_regressed_named_EPs, 
-                                  ident.1 = "EPa",
-                                  ident.2 = "EPb",
-                                  assay = "SCT")
-
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets
-```
-
-
-```{r}
-# Arrange adjusted p-values
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets <- EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets %>% 
-  dplyr::arrange("p_val_adj") %>% 
-  dplyr::mutate(gene = rownames(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets))
-
-# What is the total number of genes in the DE analysis?
-nrow(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets)
-
-# How many genes have significant adjusted p-values,  that is differentially expressed?
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif <- EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets %>% 
-                              dplyr::filter(p_val_adj < 0.05)
-nrow(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif)
-
-# How many genes are upregulated?
-(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg <- EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif %>% 
-                              dplyr::filter(avg_log2FC > 0))
-nrow(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg)
-
-# How many genes are down-regulated?
-(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg <- EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif %>% 
-                              dplyr::filter(avg_log2FC < 0))
-nrow(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg)
-```
-
-
-
-```{r}
-# Save the DEGs (all genes, not just the significant ones)
-saveRDS(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets,
-          paste0(here("DE_analysis/results/FL_E12.5", "EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets.rds")))
-write.csv(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets,
-          paste0(here("DE_analysis/results/FL_E12.5", "EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets.csv")))
-
-# Save significant DEGs
-saveRDS(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif,
-          paste0(here("DE_analysis/results/FL_E12.5", "EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif.rds")))
-
-write.csv(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif,
-          paste0(here("DE_analysis/results/FL_E12.5", "EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif.csv")))
-
-# Save upregulated genes
-saveRDS(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg,
-          paste0(here("DE_analysis/results/FL_E12.5", "EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg.rds")))
-write.csv(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg,
-          paste0(here("DE_analysis/results/FL_E12.5", "EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg.csv")))
-
-# Save downregulated genes
-saveRDS(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg,
-          paste0(here("DE_analysis/results/FL_E12.5", "EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg.rds")))
-write.csv(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg,
-          paste0(here("DE_analysis/results/FL_E12.5", "EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg.csv")))
-```
-
-
-
-```{r}
-EnhancedVolcano(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif, 
-                x = "avg_log2FC", 
-                y = "p_val_adj", 
-                xlim = c(min(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
-                lab = rownames(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_signif),
-                pCutoff = 10e-5,
-                pointSize = 6,
-                labSize = 10,
-                #drawConnectors = TRUE,
-                #max.overlaps = Inf,
-                labFace = "bold",
-                axisLabSize = 30,
-                subtitleLabSize = 30,
-                legendLabSize = 30,
-                legendIconSize = 15,
-                captionLabSize = 30,
-                FCcutoff = 0,
-                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
-                title = "", 
-                ylab = "-log10(p-val adj)", 
-                subtitle = "E12.5 EPa vs EPb sex and sexgenes regressed", 
-                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
-                ~ log[2] ~ FC)))
-
-ggsave("EPa.EPb_volcano_EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets.pdf",
-       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E12.5/",
-       width = 15, height = 15)
-```
-
-```{r}
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg <- readRDS(here("DE_analysis/results/FL_E12.5/EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg.rds"))
-
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg <- readRDS(here("DE_analysis/results/FL_E12.5/EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg.rds"))
-```
-
-
-
-
 
 # GO ANALYSIS OF DIFFERENTIALLY EXPRESSED ERYTHROID PROGENITOR GENES. I did pathway enrichment instead
 
@@ -3941,72 +3791,9 @@ msigdbr_t2g2 <- msigdbr_df2 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.dat
 
 
 
-```{r}
-# ENRICHER
-# Up_regulated genes
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome <- enricher(gene = EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg$gene, TERM2GENE = msigdbr_t2g1) 
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome@result$Description <- EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
-
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_BP <- enricher(gene = EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg$gene, TERM2GENE = msigdbr_t2g2) 
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_BP@result$Description <- EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
-```
 
 
-
-# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
-```{r}
-# Select terms of interest for up-regulated genes (top 10 significant terms)
-
-# Plot up-regulated genes
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome.pdf", width = 15, height = 15)
-a <- barplot(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - downreg. genes in E12.5 and E14.5 EP", label_format = 30)
-a
-#dev.off()
-
-
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_BP.pdf", width = 15, height = 15)
-a <- barplot(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_upreg_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E12.5 and E14.5 EP", label_format = 30)
-a
-#dev.off()
-```
-
-
-
-```{r}
-# ENRICHER
-# Down_regulated genes
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome <- enricher(gene = EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg$gene, TERM2GENE = msigdbr_t2g1)
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome@result$Description <- EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
-
-
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_BP <- enricher(gene = EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg$gene, TERM2GENE = msigdbr_t2g2)
-EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_BP@result$Description <- EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
-```
-
-
-# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
-```{r}
-# Select terms of interest for down-regulated genes (top 10 significant terms)
-
-# Plot down-regulated genes
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome.pdf", width = 15, height = 15)
-a <- barplot(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - downreg. genes in E12.5 EPa vs EPb", label_format = 30)
-a
-#dev.off()
-
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_BP.pdf", width = 15, height = 15)
-a <- barplot(EPa_vs_EPb_E12.5_regressedsexandsexgenes_nosexdoublets_downreg_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - downreg. genes in E12.5 EPa vs EPb", label_format = 30)
-a
-#dev.off()
-```
-
-
-
-
-
-
-
-# USE THE FOLLOWING ANALYSIS AS YOUR MAIN STORY IN YOUR THESIS. EPs GROUPED BASED ON SEX, NOT A AND B.
+# USE THE FOLLOWING ANALYSIS AS YOUR MAIN STORY IN YOUR THESIS. EPs GROUPED BASED ON SEX.
 
 
 ## Subset clusters of interest based on sex
@@ -4497,40 +4284,6 @@ draw(heat)
 
 ```
 
-
-# PREPARE MALE AND FEMALE EPs FOR GENE TREND CHANGES USING PALANTIR AND CELLRANK
-
-
-## Subset clusters of interest. 
-
-```{r, eval=FALSE}
-fl_samples_E12.5_12May_named_subset_male <- subset(fl_samples_E12.5_12May_named_subset_regressed_named, idents =c("MEP","EP1b", "EP2b", "EP3b", "EP4b", "EP5b","EP6b", "PEBb"))
-
-fl_samples_E12.5_12May_named_subset_female <- subset(fl_samples_E12.5_12May_named_subset_regressed_named, idents =c("MEP","EP1a", "EP2a","PEBa"))
-
-```
-
-
-
-```{r}
-# SCTransform the subset Ery object
-fl_samples_E12.5_12May_named_subset_male <- SCTransform(fl_samples_E12.5_12May_named_subset_male,
-                                   vst.flavor = "v2",
-                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score", "Sex_Genes1", "sex"),
-                                   variable.features.n = 3000,
-                                   verbose = FALSE)
-```
-
-
-
-```{r}
-# SCTransform the subset Ery object
-fl_samples_E12.5_12May_named_subset_female <- SCTransform(fl_samples_E12.5_12May_named_subset_female,
-                                   vst.flavor = "v2",
-                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score", "Sex_Genes1", "sex"),
-                                   variable.features.n = 3000,
-                                   verbose = FALSE)
-```
 
 
 

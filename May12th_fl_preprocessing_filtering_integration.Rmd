@@ -33,7 +33,7 @@ library(tidyverse)
 library(pheatmap)
 library(biomaRt)
 library(EnsDb.Mmusculus.v79)
-#library(dittoSeq)
+library(dittoSeq)
 library(ComplexHeatmap)
 library(patchwork)
 library(gridExtra)
@@ -1099,7 +1099,7 @@ rm(E14.5_integrated, integ_anchors)
 # Merge fetal liver samples for downstream analysis. 
 merged_timepoints <- merge(x = fl_samples_E10.5_12May, y = list(fl_samples_E12.5_12May, fl_samples_E14.5_12May))
 
-#rm(fl_samples_E10.5_12May_named_DEG,fl_samples_E12.5_12May_named_DEG,fl_samples_E14.5_12May_named_DEG)
+
 ```
 
 
@@ -1182,6 +1182,12 @@ ggsave("May12th_cell_nUMI_info_after_filtering.tif",
 
 
 ```
+
+
+
+
+
+
 
 
 ## Specify colours

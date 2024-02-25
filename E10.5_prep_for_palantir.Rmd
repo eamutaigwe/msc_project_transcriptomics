@@ -40,12 +40,13 @@ fl_samples_E10.5_12May_named_no_prim_ER <- readRDS("~/myproject/sc_analysis_proj
 
 
 ```{r}
+DefaultAssay(fl_samples_E10.5_12May_named_no_prim_ER)
 fl_samples_E10.5_12May_named_no_prim_ER_palantir <- fl_samples_E10.5_12May_named_no_prim_ER
 E10.5_metadata <- fl_samples_E10.5_12May_named_no_prim_ER_palantir@meta.data 
 E10.5_metadata <- E10.5_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident))
 fl_samples_E10.5_12May_named_no_prim_ER_palantir@meta.data <- E10.5_metadata
 
-write.csv(fl_samples_E10.5_12May_named_no_prim_ER_palantir@meta.data, "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/E10.5_palantir_metadata.csv", quote = F, row.names = F) 
+write.csv(fl_samples_E10.5_12May_named_no_prim_ER_palantir@meta.data, "~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E10.5/E10.5_palantir_metadata.csv", quote = F, row.names = F) 
 ```
 
 
@@ -53,13 +54,13 @@ write.csv(fl_samples_E10.5_12May_named_no_prim_ER_palantir@meta.data, "~/myproje
 ```{r}
 DefaultAssay(fl_samples_E10.5_12May_named_no_prim_ER_palantir) <- "RNA"
 # Convert seurat object to AnnData
-SaveH5Seurat(fl_samples_E10.5_12May_named_no_prim_ER_palantir, filename = "~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER_palantir.h5Seurat")
-Convert("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER_palantir.h5Seurat", dest = "h5ad")
+SaveH5Seurat(fl_samples_E10.5_12May_named_no_prim_ER_palantir, filename = "~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER_palantir.h5Seurat")
+Convert("~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER_palantir.h5Seurat", dest = "h5ad")
 ```
 
 
 ```{r}
-fl_samples_E10.5_12May_named_no_prim_ER.h5Seurat <- LoadH5Seurat("~/myproject/sc_analysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER.h5Seurat")
+#fl_samples_E10.5_12May_named_no_prim_ER.h5Seurat <- #LoadH5Seurat("~/myproject/sc_analysis_project/msc_project/h5ad_data/FL_E10.5/fl_samples_E10.5_12May_named_no_prim_ER.h5Seurat")
 ```
 
 
@@ -77,10 +78,6 @@ repeat_fl_samples_E10.5_12May_named_no_prim_ER.h5ad <- srt_to_adata(
   convert_misc = FALSE,
   verbose = TRUE
 )
-```
-
-```{r}
-#repeat_fl_samples_E10.5_12May_named_no_prim_ER.h5ad$write_h5ad("/Users/ekperekaamutaigwe/myproject/sc_an#alysis_project/MSc_scRNA-seq_project/h5ad_data/FL_E10.5/repeat_fl_samples_E10.5_12May_named_no_prim_ER.h#5ad")
 ```
 
 
@@ -105,7 +102,7 @@ palantir_fl_samples_E10.5_12May_named_no_prim_ER <- RunPalantir(
   early_group = "HSC/MPP",
   early_cell = NULL,
   terminal_cells = NULL,
-  terminal_groups = c("Mac", "MCP", "GMP/GP", "Mk2", "PEB3"),
+  terminal_groups = c("Mac", "MCP", "GMP/GP", "Mk", "PEB"),
   num_waypoints = 1200,
   scale_components = TRUE,
   use_early_cell_as_start = TRUE,
