@@ -1789,7 +1789,7 @@ ggsave("R_umap_fl_samples_E14.5_12May_named_subset.pdf",
 
 
 
-I WILL DO RNA VELOCITY AND TRAJECTORY INFERENCE BEFORE I COME BACK TO DIFFERENTIAL GENE EXPRESSION ANALYSIS AND PATHWAY ANALYSIS
+I WILL DO TRAJECTORY INFERENCE USING CELLRANK AND NOT PALANTIR (CELLRANK WORKS BETTER FOR THIS DATA) BEFORE I COME BACK TO DIFFERENTIAL GENE EXPRESSION ANALYSIS AND PATHWAY ANALYSIS
 
 ```{r}
 #dir.create("~/myproject/sc_analysis_project/msc_project/rnavelocity/E14.5_rnavelocity")
@@ -2396,11 +2396,51 @@ fl_samples_E14.5_12May_named_subset_regressed <- SCTransform(fl_samples_E14.5_12
 ```
 
 
+
+## Reannotate clusters in FL_E12.5 samples
+```{r}
+# Fetal liver
+fl_samples_E14.5_12May_named_subset_regressed <-  RenameIdents(object = fl_samples_E14.5_12May_named_subset_regressed,
+                                      "EP1b" = "EP2",
+                                      "EP2a" = "EP1",
+                                      "EP3a" = "EP1",
+                                      "EP2b" = "EP2",
+                                      "EP1a" = "EP1",
+                                      "EP4a" = "EP1",
+                                      "EP5a" = "EP1")
+
+fl_samples_E14.5_12May_named_subset_regressed$cluster_ident <- Idents(fl_samples_E14.5_12May_named_subset_regressed)
+
+
+```
+
+
+```{r}
+fl_samples_E14.5_12May_named_subset_regressed@active.ident <- factor(fl_samples_E14.5_12May_named_subset_regressed@active.ident, levels = c("MEP", "Mk", "EP1", "EP2", "PEBa", "PEBb", "PEBc"))
+```
+
+
+```{r, eval=FALSE}
+fl_samples_E14.5_12May_named_subset_regressed$cluster_ident <- factor(fl_samples_E14.5_12May_named_subset_regressed$cluster_ident, levels = c("MEP", "Mk", "EP1", "EP2", "PEBa", "PEBb", "PEBc"))
+```
+
+
+
+
+
+```{r}
+# Set colors
+clust_cols_subset <- c(MEP = "#565656", Mk = "brown", EP1 = "#DEA0FD", EP2 = "#2ED9FF", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")
+```
+
+
+
 ```{r}
 # Plot UMAP
 set.seed(123)
 DimPlot(object = fl_samples_E14.5_12May_named_subset_regressed,
         reduction = "umap",
+        cols = clust_cols_subset,
         label = TRUE,
         label.size = 6,
         pt.size = 1.5) + NoLegend() +
@@ -2416,6 +2456,25 @@ ggsave("repeated_umap2_fl_samples_E14.5_12May_named_subset_regressed_named.tif",
        path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
        width = 17, height = 15, device = "tiff")
 ```
+
+
+```{r}
+# Plot UMAP
+set.seed(12098)
+DimPlot(object = fl_samples_E14.5_12May_named_subset_regressed,
+        reduction = "umap",
+        cols = clust_cols_subset,
+        label = TRUE,
+        label.size = 6,
+        pt.size = 1.5) + NoLegend()
+
+ggsave("R_umap_fl_samples_E14.5_12May_named_subset_regressed.pdf",
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots",
+       width = 17, height = 15)
+```
+
+
+
 
 ```{r}
 # Run PrepSCTFindMarkers to ensure that the fixed value is set properly, as SCT creates corrected counts by setting the sequencing depth for all the cells to a fixed value
@@ -2455,30 +2514,6 @@ top_5_markers_fl_samples_E14.5_12May_named_subset_regressed <- markers_fl_sample
 ```
 
 
-```{r}
-# Plot UMAP
-set.seed(123)
-DimPlot(object = fl_samples_E14.5_12May_named_subset_regressed,
-        reduction = "umap",
-        label = TRUE,
-        label.size = 6,
-        pt.size = 1.5)
-```
-
-
-
-```{r}
-# Set colors
-# Set colors
-clust_cols_subset <- c(EP1a = "#16FF32", EP1b =  "#2ED9FF", EP2a = "#FE00FA", EP2b = "#DEA0FD", EP3a = "grey60", EP4a = "darkorange2", EP5a = "#90AD1C", MEP = "#F6222E", Mk = "#00AFBB", PEBa = "#3283FE", PEBb = "#1CFFCE", PEBc = "goldenrod1")
-
-
-
-```
-Ery4b = "#2ED9FF",Ery5b = "#90AD1C", "#85660D",
- Ery3b = "#2ED9FF",EP5a = "#325A9B",  
-
-
 
 # Plot top 3 genes
 ```{r}
@@ -2493,7 +2528,7 @@ mat <- t(scale(t(mat)))
 
 cols_sample_group <- c(FL_E14.5 = "#E2E2E2" )
 
-clust <- c("MEP", "Mk", "EP1a", "EP2a", "EP3a", "EP4a", "EP5a", "PEBa", "EP1b", "EP2b","PEBb", "PEBc")
+clust <- c("MEP", "Mk", "EP1", "EP2", "PEBa", "PEBb", "PEBc")
 
 clusters <- fl_samples_E14.5_12May_named_subset_regressed$cluster_ident
 
@@ -2551,7 +2586,7 @@ mapal <- colorRampPalette(RColorBrewer::brewer.pal(11,"RdBu"))(256)
 DoHeatmap(subset(fl_samples_E14.5_12May_named_subset_regressed, downsample = 100),
           features = top_3_markers,
           group.by = "cluster_ident",
-          group.colors = c(EP1a = "#16FF32", EP1b =  "#2ED9FF", EP2a = "#FE00FA", EP2b = "#DEA0FD", EP3a = "grey60", EP4a = "darkorange2", EP5a = "#90AD1C", MEP = "#F6222E", Mk = "#00AFBB", PEBa = "#3283FE", PEBb = "#1CFFCE", PEBc = "goldenrod1"), 
+          group.colors = c(MEP = "#565656", Mk = "brown", EP1 = "#DEA0FD", EP2 = "#2ED9FF", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), 
           angle = 45) +
           theme(text = element_text(size = 30)) +
   scale_fill_gradientn(colours = rev(mapal))
@@ -2614,17 +2649,6 @@ ggsave("repeated_umap2_fl_samples_E14.5_12May_named_subset_regressed.tif",
 
 
 ```{r}
-fl_samples_E14.5_12May_named_subset_regressed@active.ident <- factor(fl_samples_E14.5_12May_named_subset_regressed@active.ident, levels = c("MEP", "Mk", "EP1a", "EP2a", "EP3a", "EP4a", "EP5a", "PEBa", "EP1b", "EP2b", "PEBb", "PEBc"))
-```
-
-
-```{r, eval=FALSE}
-fl_samples_E14.5_12May_named_subset_regressed$cluster_ident <- factor(fl_samples_E14.5_12May_named_subset_regressed$cluster_ident, levels = c("MEP", "Mk", "EP1a", "EP2a", "EP3a", "EP4a", "EP5a", "PEBa", "EP1b", "EP2b", "PEBb", "PEBc"))
-```
-
-
-
-```{r}
 (ncells_E14.5 <- data.frame(table(fl_samples_E14.5_12May_named_subset_regressed$cluster_ident)) %>% dplyr::rename("Clusters" = Var1))
 
 (ncells_E14.5 <- mutate(ncells_E14.5, percent = round((Freq/sum(Freq))*100, digits = 2)))
@@ -2633,7 +2657,7 @@ ncells_E14.5
 
 ggplot(ncells_E14.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
   geom_col() +
-  scale_fill_manual(values = c(EP1a = "#16FF32", EP1b =  "#2ED9FF", EP2a = "#FE00FA", EP2b = "#DEA0FD", EP3a = "grey60", EP4a = "darkorange2", EP5a = "#90AD1C", MEP = "#F6222E", Mk = "#00AFBB", PEBa = "#3283FE", PEBb = "#1CFFCE", PEBc = "goldenrod1")) +
+  scale_fill_manual(values = c(MEP = "#565656", Mk = "brown", EP1 = "#DEA0FD", EP2 = "#2ED9FF", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA")) +
   theme(axis.text = element_text(size = 50),
         panel.background = element_rect(fill = "white"), 
         plot.background = element_rect(fill = "white", colour = "black", linewidth = 1.2)) +
@@ -2641,7 +2665,7 @@ ggplot(ncells_E14.5, aes(x = Clusters, y = Freq, fill = Clusters)) +
         theme(axis.title.y = element_text(size = 50, face = "bold")) +
   geom_text(aes(label = percent), vjust = 0.5, hjust = -0.1, size = 15, face = "bold") +
   #scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
-  scale_y_continuous(breaks = seq(0, 2000, by=1000), limits=c(0,2000)) +
+  scale_y_continuous(breaks = seq(0, 4000, by=1000), limits=c(0,4000)) +
   xlab("Cell types") + 
  # theme_bw() + 
   NoLegend() +
@@ -3298,10 +3322,10 @@ ggsave("subset_Female_marker1_fl_samples_E14.5_12May_named_subset_regressed.tif"
 library(scCustomize)
 
 #tiff("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E14.5/12May_plots/Clustered_Dotplot_marker2_fl_samples_E14.5_12May_named_subset_regressed.tif", width = 550, height = 550)
-Clustered_DotPlot(seurat_object = fl_samples_E14.5_12May_named_subset_regressed, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Epor", "Gata2", "Pf4", "Vwf", "Itga2b", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Ppbp", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Gp1bb", "Cd24a", "Muc13", "Myb", "Epor", "F2r", "Myl9", "Pf4", "Alox12"), k = 3, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 20, colors_use_idents = c(MEP = "#F6222E",Mk = "#00AFBB",EP1a = "#16FF32", EP2a = "#FE00FA", EP3a = "grey60", EP4a = "darkorange2", EP5a = "#90AD1C", PEBa = "#3283FE", EP1b =  "#2ED9FF", EP2b = "#DEA0FD", PEBb = "#1CFFCE", PEBc = "goldenrod1"), colors_use_exp = c(low="lightgrey", mid="grey", high="red")) 
+Clustered_DotPlot(seurat_object = fl_samples_E14.5_12May_named_subset_regressed, features = c("Gypa", "Tfrc", "Gata1", "Kit", "Epor", "Gata2", "Pf4", "Vwf", "Itga2b", "Thbs1", "Gata2", "Gata1", "Klf1", "Car1", "Ppbp", "Hbb-bs", "Hbb-bt", "Hba-a2", "Rhd", "Gp1bb", "Cd24a", "Muc13", "Myb", "Epor", "F2r", "Myl9", "Pf4", "Alox12"), k = 3, show_parent_dend_line = FALSE, plot_km_elbow = FALSE, cluster_ident = FALSE,  column_label_size = 10, row_label_size = 20, colors_use_idents = c(MEP = "#565656", Mk = "brown", EP1 = "#DEA0FD", EP2 = "#2ED9FF", PEBa = "#F8766D",  PEBb= "#3283FE", PEBc = "#FE00FA"), colors_use_exp = c(low="lightgrey", mid="grey", high="red")) 
 
 #row_label_fontface = "bold",
-#dev.off()
+dev.off()
 ```
 
 
@@ -3343,8 +3367,65 @@ DimPlot(object = fl_samples_E14.5_12May_named_subset_regressed,
 ```
 
 
+I WILL DO TRAJECTORY INFERENCE USING CELLRANK AND NOT PALANTIR (CELLRANK WORKS BETTER FOR THIS DATA) BEFORE I COME BACK TO DIFFERENTIAL GENE EXPRESSION ANALYSIS AND PATHWAY ANALYSIS
+
+```{r}
+#dir.create("~/myproject/sc_analysis_project/msc_project/rnavelocity/E14.5_rnavelocity")
+E14.5_rnavelo <- "~/myproject/sc_analysis_project/msc_project/rnavelocity/E14.5_rnavelocity/"
+```
 
 
+## PREPARE ERYTHROID SEURAT OBJECT METADATA FOR RNA VELOCITY (https://smorabit.github.io/tutorials/8_velocyto/)
+
+## Ery
+```{r}
+# Make a copy of the original object to avoid stories that touch
+fl_samples_E14.5_12May_named_subset_regressed1 <- fl_samples_E14.5_12May_named_subset_regressed
+# save metadata table
+fl_samples_E14.5_12May_named_subset_regressed1$barcode <- colnames(fl_samples_E14.5_12May_named_subset_regressed1)
+fl_samples_E14.5_12May_named_subset_regressed1$UMAP_1 <- fl_samples_E14.5_12May_named_subset_regressed1@reductions$umap@cell.embeddings[,1]
+fl_samples_E14.5_12May_named_subset_regressed1$UMAP_2 <- fl_samples_E14.5_12May_named_subset_regressed1@reductions$umap@cell.embeddings[,2]
+```  
+
+
+```{r}
+
+
+# Select column variables of interest
+Ery_E14.5_metadata <- fl_samples_E14.5_12May_named_subset_regressed1@meta.data
+Ery_E14.5_metadata <- Ery_E14.5_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident, barcode, UMAP_1, UMAP_2)) %>% dplyr::rename("CellID" = cells)
+
+fl_samples_E14.5_12May_named_subset_regressed1@meta.data <- Ery_E14.5_metadata
+```
+
+```{r}
+write.csv(fl_samples_E14.5_12May_named_subset_regressed1@meta.data, file = paste0(E14.5_rnavelo, "Ery_E14.5_metadata.csv"), quote = F, row.names = F)
+
+```
+
+
+```{r}
+# Write expression counts matrix
+Ery_E14.5_counts_matrix <- GetAssayData(fl_samples_E14.5_12May_named_subset_regressed1, assay = "SCT", slot = "counts")
+writeMM(Ery_E14.5_counts_matrix, file = paste0(E14.5_rnavelo, "Ery_E14.5_counts.mtx"))
+```
+
+```{r}
+# Write dimensionality reduction matrix
+write.csv(fl_samples_E14.5_12May_named_subset_regressed1@reductions$pca@cell.embeddings, file = paste0(E14.5_rnavelo, "Ery_E14.5_pca.csv"), quote = F, row.names = F)
+```
+
+
+```{r}
+# Write gene names
+write.table(data.frame("gene" = rownames(Ery_E14.5_counts_matrix)), file = paste0(E14.5_rnavelo, "Ery_E14.5_gene_names.csv"), quote = F, row.names = F, col.names = F)
+```
+
+
+
+# NOTE:
+
+# THE FOLLOWING ANNOTATION WAS DONE BEFORE I REPEATED ANNOTATION ABOVE AND GROUPED SUBCLUSTERS OF ERYTHROID PROGENITORS
 
 
 ## Subset Erythroid progenitors
@@ -3368,9 +3449,10 @@ fl_samples_E14.5_12May_named_subset_regressed_named_EPs <- SCTransform(fl_sample
                                    verbose = FALSE)
 ```
 
+# NOTE:
 
-
-## Reannotate clusters in FL_E12.5 samples for DEG analysis between erythroid progenitors
+# THE FOLLOWING ANNOTATION WAS DONE BEFORE I REPEATED ANNOTATION ABOVE AND GROUPED SUBCLUSTERS OF ERYTHROID PROGENITORS
+## Annotate clusters in FL_E12.5 samples for DEG analysis between erythroid progenitors
 
 ```{r}
 # Fetal liver
@@ -3492,7 +3574,7 @@ EnhancedVolcano(female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signi
                 pCutoff = 10e-5,
                 pointSize = 6,
                 labSize = 10,
-                #drawConnectors = TRUE,
+                drawConnectors = TRUE,
                 #max.overlaps = Inf,
                 labFace = "bold",
                 axisLabSize = 30,
@@ -3508,14 +3590,16 @@ EnhancedVolcano(female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signi
                 legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
                 ~ log[2] ~ FC)))
 
-ggsave("volcano_female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets.pdf",
-       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
-       width = 15, height = 15)
+#ggsave("volcano_female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets.pdf",
+      # path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
+       #width = 15, height = 15)
 ```
 
 ```{r}
 # Read in up- and down-regulated Erythroid progenitor genes
-female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signif <- read_csv(here("DE_analysis/results/FL_E14.5", "female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signif.csv"))
+female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signif <- readRDS(here("DE_analysis/results/FL_E14.5", "female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signif.rds"))
+
+#female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signif <- read_csv(here("DE_analysis/results/FL_E14.5", #"female_vs_male_E14.5_regressedsexandsexgenes_nosexdoublets_signif.csv"))
 ```
 
 
@@ -3834,305 +3918,6 @@ draw(heat1)
 ```
 
 
-
-```{r}
-
-```
-
-
-
-
-
-
-
-
-
-# GO ANALYSIS OF DIFFERENTIALLY EXPRESSED ERYTHROID PROGENITOR GENES. I did pathway enrichment instead
-
-```{r}
-# Load libraries
-library(clusterProfiler)
-library(msigdbr)
-library(GOplot)
-```
-
-
-
-```{r}
-# Extract databases of interest
-msigdbr_df1 <- msigdbr(species = "mouse", category = "C2", subcategory = "CP:REACTOME")
-msigdbr_df2 <- msigdbr(species = "mouse", category = "C5", subcategory = "GO:BP")
-
-
-# Extract columns of interest(gene set name and gene symbol)
-# Reactome Pathways
-msigdbr_t2g1 <- msigdbr_df1 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
-# Biological Processes
-msigdbr_t2g2 <- msigdbr_df2 %>% dplyr::distinct(gs_name, gene_symbol) %>% as.data.frame()
-```
-
-
-```{r}
-# ENRICHER
-# All significant genes
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif_Reactome <- enricher(gene = EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif$gene, TERM2GENE = msigdbr_t2g1)
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif_Reactome@result$Description <- EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
-
-
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif_BP <- enricher(gene = EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif$gene, TERM2GENE = msigdbr_t2g2)
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif_BP@result$Description <- EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif_BP@result$Description %>% str_replace_all("GOBP_", "")
-```
-
-
-```{r}
-require(DOSE)
-dotplot(EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_signif_Reactome, showCategory = 10, split = ".sign") + facet_grid(.~.sign)
-```
-
-
-
-
-```{r}
-# ENRICHER
-# Up_regulated genes
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome <- enricher(gene = EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg$gene, TERM2GENE = msigdbr_t2g1) 
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome@result$Description <- EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
-
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_BP <- enricher(gene = EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg$gene, TERM2GENE = msigdbr_t2g2) 
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_BP@result$Description <- EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_BP@result$Description %>% str_replace_all("GOBP_", "")
-```
-
-
-
-# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
-```{r}
-# Select terms of interest for up-regulated genes (top 10 significant terms)
-
-# Plot up-regulated genes
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome.pdf", width = 15, height = 15)
-a <- barplot(EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - upreg. genes in E14.5 EPa vs EPb", label_format = 30)
-a
-#dev.off()
-
-
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_BP.pdf", width = 15, height = 15)
-a <- barplot(EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_upreg_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - upreg. genes in E14.5 EPa vs EPb", label_format = 30)
-a
-#dev.off()
-```
-
-
-
-```{r}
-# ENRICHER
-# Down_regulated genes
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome <- enricher(gene = EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg$gene, TERM2GENE = msigdbr_t2g1)
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome@result$Description <- EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome@result$Description %>% str_replace_all("REACTOME_", "")
-
-
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_BP <- enricher(gene = EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg$gene, TERM2GENE = msigdbr_t2g2)
-EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_BP@result$Description <- EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_BP@result$Description %>% str_replace_all("GOBP_", "")
-```
-
-
-# PLOT ERYTHROID DIFFERENTIALLY EXPRESSED GENES
-```{r}
-# Select terms of interest for down-regulated genes (top 10 significant terms)
-
-# Plot down-regulated genes
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome.pdf", width = 15, height = 15)
-a <- barplot(EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_Reactome, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "REACTOME sig.terms - downreg. genes in E14.5 EPa vs EPb", label_format = 30)
-a
-#dev.off()
-
-#pdf(file= "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_BP.pdf", width = 15, height = 15)
-a <- barplot(EPa_vs_EPb_E14.5_regressedsexandsexgenes_nosexdoublets_downreg_BP, x = "Count", color = "p.adjust", showCategory = 15, font.size = 14, title = "BP sig.terms - downreg. genes in E14.5 EPa vs EPb", label_format = 30)
-a
-#dev.off()
-```
-
-
-
-
-
-
-
-
-
-
-```{r}
-#gse <- gseGO(geneList = gene_list_E14.5,
-             ont = "BP",
-             keyType = "SYMBOL",
-             nPerm = 10000,
-             minGSSize = 1,
-             maxGSSize = 800,
-             pvalueCutoff = 0.1,
-             verbose = TRUE,
-             OrgDb = org.Mm.eg.db,
-             pAdjustMethod = "none")
-```
-
-
-```{r}
-require(DOSE)
-dotplot(gse, showCategory = 10, split = ".sign") + facet_grid(.~.sign)
-```
-
-
-
-```{r}
-#library(ReactomePA)
-library(signatureSearch)
-```
-
-
-```{r}
-gsereactome_E14.5 <- gseReactome(geneList = gene_list_E14.5_reactome,
-             organism = "mouse",
-             exponent = 1,
-             nPerm = 10000,
-             minGSSize = 1,
-             maxGSSize = 5000,
-             pvalueCutoff = 1,
-             verbose = TRUE,
-             readable = TRUE,
-             pAdjustMethod = "none"
-)
-```
-
-
-```{r}
-require(DOSE)
-dotplot(gsereactome_E14.5, showCategory = 10, split = ".sign") + facet_grid(.~.sign)
-```
-
-
-
-# Filter out all sex genes
-```{r, eval=FALSE}
-DefaultAssay(fl_samples_E14.5_12May_named_subset_regressed_named) <- "RNA"
-# code from the internet on how to remove specific genes before downstream analysis (Satijalab, Github)
-counts <- GetAssayData(fl_samples_E14.5_12May_named_subset_regressed_named, assay = "RNA")
-counts <- counts[-(which(rownames(counts) %in% sex_genes_vector)),]
-fl_samples_E14.5_12May_named_subset_regressed_named_sexgenesout <- subset(fl_samples_E14.5_12May_named_subset_regressed_named, features = rownames(counts))
-```
-
-
-
-```{r}
-# SCTransform the subset Ery object
-fl_samples_E14.5_12May_named_subset_regressed_named_sexgenesout <- SCTransform(fl_samples_E14.5_12May_named_subset_regressed_named_sexgenesout,
-                                   vst.flavor = "v2",
-                                   vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score"),
-                                   variable.features.n = 3000,
-                                   verbose = FALSE)
-```
-
-
-
-# DIFFERENTIAL GENE EXPRESSION BETWEEN EPa and EPb
-
-```{r}
-EPa_vs_EPb_E14.5_regressed_sexgenesout <- FindMarkers(fl_samples_E14.5_12May_named_subset_regressed_named_sexgenesout, 
-                                  ident.1 = "EPa",
-                                  ident.2 = "EPb",
-                                  assay = "SCT",
-                                  min.pct = 0.3)
-
-EPa_vs_EPb_E14.5_regressed_sexgenesout
-```
-
-
-```{r}
-# Arrange adjusted p-values
-EPa_vs_EPb_E14.5_regressed_sexgenesout <- EPa_vs_EPb_E14.5_regressed_sexgenesout %>% 
-  dplyr::arrange("p_val_adj") %>% 
-  dplyr::mutate(gene = rownames(EPa_vs_EPb_E14.5_regressed_sexgenesout))
-
-# What is the total number of genes in the DE analysis?
-nrow(EPa_vs_EPb_E14.5_regressed_sexgenesout)
-
-# How many genes have significant adjusted p-values,  that is differentially expressed?
-EPa_vs_EPb_E14.5_regressed_sexgenesout_signif <- EPa_vs_EPb_E14.5_regressed_sexgenesout %>% 
-                              dplyr::filter(p_val_adj < 0.05)
-nrow(EPa_vs_EPb_E14.5_regressed_sexgenesout_signif)
-
-# How many genes are upregulated?
-(EPa_vs_EPb_E14.5_regressed_sexgenesout_upreg <- EPa_vs_EPb_E14.5_regressed_sexgenesout_signif %>% 
-                              dplyr::filter(avg_log2FC > 0))
-nrow(EPa_vs_EPb_E14.5_regressed_sexgenesout_upreg)
-
-# How many genes are down-regulated?
-(EPa_vs_EPb_E14.5_regressed_sexgenesout_downreg <- EPa_vs_EPb_E14.5_regressed_sexgenesout_signif %>% 
-                              dplyr::filter(avg_log2FC < 0))
-nrow(EPa_vs_EPb_E14.5_regressed_sexgenesout_downreg)
-```
-
-
-```{r}
-# Save the DEGs (all genes, not just the significant ones)
-saveRDS(EPa_vs_EPb_E14.5_regressed_sexgenesout,
-          paste0(here("DE_analysis/results/FL_E14.5", "EPa_vs_EPb_E14.5_regressed_sexgenesout.rds")))
-
-
-# Save significant DEGs
-saveRDS(EPa_vs_EPb_E14.5_regressed_sexgenesout_signif,
-          paste0(here("DE_analysis/results/FL_E14.5", "EPa_vs_EPb_E14.5_regressed_sexgenesout_signif.rds")))
-
-# Save upregulated genes
-saveRDS(EPa_vs_EPb_E14.5_regressed_sexgenesout_upreg,
-          paste0(here("DE_analysis/results/FL_E14.5", "EPa_vs_EPb_E14.5_regressed_sexgenesout_upreg.rds")))
-write.csv(EPa_vs_EPb_E14.5_regressed_sexgenesout_upreg,
-          paste0(here("DE_analysis/results/FL_E14.5", "EPa_vs_EPb_E14.5_regressed_sexgenesout_upreg.csv")))
-
-# Save downregulated genes
-saveRDS(EPa_vs_EPb_E14.5_regressed_sexgenesout_downreg,
-          paste0(here("DE_analysis/results/FL_E14.5", "EPa_vs_EPb_E14.5_regressed_sexgenesout_downreg.rds")))
-write.csv(EPa_vs_EPb_E14.5_regressed_sexgenesout_downreg,
-          paste0(here("DE_analysis/results/FL_E14.5", "EPa_vs_EPb_E14.5_regressed_sexgenesout_downreg.csv")))
-```
-
-
-
-
-```{r}
-EnhancedVolcano(EPa_vs_EPb_E14.5_regressed_sexgenesout_signif, 
-                x = "avg_log2FC", 
-                y = "p_val_adj", 
-                xlim = c(min(EPa_vs_EPb_E14.5_regressed_sexgenesout_signif[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(EPa_vs_EPb_E14.5_regressed_sexgenesout_signif[["avg_log2FC"]], na.rm = TRUE) + 0.5),
-                lab = rownames(EPa_vs_EPb_E14.5_regressed_sexgenesout_signif),
-                pCutoff = 10e-5,
-                pointSize = 6,
-                labSize = 10,
-                #drawConnectors = TRUE,
-                #max.overlaps = Inf,
-                labFace = "bold",
-                axisLabSize = 30,
-                subtitleLabSize = 30,
-                legendLabSize = 30,
-                legendIconSize = 15,
-                captionLabSize = 30,
-                FCcutoff = 0,
-                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
-                title = "", 
-                ylab = "-log10(p-val adj)", 
-                subtitle = "E14.5 EPa vs EPb sex genes removed", 
-                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
-                ~ log[2] ~ FC)))
-
-ggsave("EPa.EPb_volcano_fl_samples_E14.5_sexgenes_out.pdf",
-       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E14.5/",
-       width = 15, height = 15)
-```
-
-
-
-
-
-
-
-
 ```{r, eval=FALSE}
 # Save integrated clustered and identified FL_E14.5 data
 
@@ -4144,8 +3929,13 @@ write_csv(markers_fl_samples_E14.5_12May_named, "~/myproject/sc_analysis_project
 saveRDS(fl_samples_E14.5_12May_named_subset, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/repeated_fl_samples_E14.5_12May_named_subset.rds")
 saveRDS(fl_samples_E14.5_12May_named_subset_nosexdoublets, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_nosexdoublets_notregressed.rds")
 saveRDS(fl_samples_E14.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressedsexandsexgenes.rds")
+
+saveRDS(fl_samples_E14.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressed_MERGED_EPs.rds") # FEB 25, 2024
+
+saveRDS(markers_fl_samples_E14.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/markers_fl_samples_E14.5_12May_named_subset_regressed_MERGED_EPs.rds")
+
 saveRDS(fl_samples_E14.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressedsexandsexgenes_named.rds")
-saveRDS(markers_fl_samples_E14.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/markers_fl_samples_E14.5_12May_named_subset_regressed.rds")
+
 saveRDS(fl_samples_E14.5_12May_named_subset_regressed_named_EPs, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressed_named_EPs.rds")
 saveRDS(fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E14.5/fl_samples_E14.5_12May_named_subset_regressed_named_EPs_sex_known.rds")
 
@@ -4170,105 +3960,36 @@ merged_timepoints <- merge(x = fl_samples_E10.5_12May, y = list(fl_samples_E12.5
 VariableFeatures(merged_timepoints[["SCT"]]) <- rownames(merged_timepoints[["SCT"]]@scale.data)
 ```
 
-```{r}
- "#06A5FF""#1C91D4" "#007756""#FF8320" "#B14380""#009E73"
-21, 131, 15
 
-   [1] "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756"
-  [12] "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320"
-  [23] "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00"
-  [34] "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442"
-  [45] "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380"
-  [56] "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2"
-  [67] "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B"
-  [78] "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666"
-  [89] "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3"
- [100] "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D"
- [111] "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00"
- [122] "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711"
- [133] "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD"
- [144] "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9"
- [155] "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2"
- [166] "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D"
- [177] "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6"
- [188] "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800"
- [199] "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700"
- [210] "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71"
- [221] "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA"
- [232] "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9"
- [243] "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685"
- [254] "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C"
- [265] "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45"
- [276] "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00"
- [287] "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D"
- [298] "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E"
- [309] "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666"
- [320] "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4"
- [331] "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF"
- [342] "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3"
- [353] "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73"
- [364] "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700"
- [375] "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57"
- [386] "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D"
- [397] "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7"
- [408] "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF"
- [419] "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF"
- [430] "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D"
- [441] "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756"
- [452] "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320"
- [463] "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00"
- [474] "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442"
- [485] "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380"
- [496] "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2"
- [507] "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B"
- [518] "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666"
- [529] "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3"
- [540] "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D"
- [551] "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00"
- [562] "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711"
- [573] "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD"
- [584] "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9"
- [595] "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2"
- [606] "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D"
- [617] "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6"
- [628] "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800"
- [639] "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700"
- [650] "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71"
- [661] "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA"
- [672] "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9"
- [683] "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685"
- [694] "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C"
- [705] "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45"
- [716] "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00"
- [727] "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D"
- [738] "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E"
- [749] "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666"
- [760] "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4"
- [771] "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF"
- [782] "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3"
- [793] "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73"
- [804] "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700"
- [815] "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57"
- [826] "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D"
- [837] "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7"
- [848] "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF"
- [859] "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF"
- [870] "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D"
- [881] "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756"
- [892] "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320"
- [903] "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00"
- [914] "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442"
- [925] "#0072B2" "#D55E00" "#CC79A7" "#666666" "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380"
- [936] "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3" "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2"
- [947] "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D" "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B"
- [958] "#803800" "#8D3666" "#3D3D3D" "#E69F00" "#56B4E9" "#009E73" "#F0E442" "#0072B2" "#D55E00" "#CC79A7" "#666666"
- [969] "#AD7700" "#1C91D4" "#007756" "#D5C711" "#005685" "#A04700" "#B14380" "#4D4D4D" "#FFBE2D" "#80C7EF" "#00F6B3"
- [980] "#F4EB71" "#06A5FF" "#FF8320" "#D99BBD" "#8C8C8C" "#FFCB57" "#9AD2F2" "#2CFFC6" "#F6EF8E" "#38B7FF" "#FF9B4D"
- [991] "#E0AFCA" "#A3A3A3" "#8A5F00" "#1674A9" "#005F45" "#AA9F0D" "#00446B" "#803800" "#8D3666" "#3D3D3D"
+```{r}
+library(ggplot2)
+metadata <- merged_timepoints@meta.data
+  ggplot(metadata, aes(x = sample_group, fill = Phase)) +
+        geom_bar() +
+    scale_y_continuous(breaks = seq(0, 10000, by=2000), limits=c(0,10000)) +
+    theme(axis.text = element_text(size = 50),
+            panel.background = element_rect(fill = "white"), 
+        plot.background = element_rect(fill = "white", colour = "black", linewidth = 0)) +
+    theme(legend.text = element_text(size = 30)) +
+    theme(legend.title = element_text(size = 30)) +
+        coord_flip() + 
+        theme(axis.title.y = element_blank()) +
+        theme(axis.title.x = element_text(size = 30)) 
+         #xlab("") 
+
+
+ggsave("proportion_of_cells_byphase_acrosstimepoints.tif", 
+       path = "~/myproject/sc_analysis_project/msc_project/results/plots",
+       width = 17, height = 15, device = "tiff")
+
+
 ```
 
 
+
+
 ```{r}
+library(dittoSeq)
 dittoBarPlot(merged_timepoints, "Phase", group.by = "sample_group", colors = c("red", "green4", "#06A5FF")) +
  theme(axis.text = element_text(size = 50),
         panel.background = element_rect(fill = "white"), 

@@ -1086,8 +1086,7 @@ a <- FeaturePlot(fl_samples_E10.5_12May_named,
             theme(axis.title.x = element_blank()) +
             theme(axis.title.y = element_blank()) +
             theme(axis.line = element_blank()) +
-            theme(axis.ticks = element_blank()) +
-            theme(legend.position = "top")
+            theme(axis.ticks = element_blank()) 
 
 b <- FeaturePlot(fl_samples_E10.5_12May_named, 
             reduction = "umap", 

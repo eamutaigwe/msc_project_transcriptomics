@@ -80,6 +80,8 @@ https://hbctraining.github.io/DGE_workshop/lessons/08_DGE_LRT.html
 
 ```{r}
 # Extract corrected raw counts and metadata for creating a SingleCellExperiment object
+# Ideally, raw counts from the RNA slot should be used. But since our E10.5 replicates have serious batch effects, and because batch cannot be added to the design matrix due to sub-optimal experimental design during library prep, I used 'corrected' raw counts from the SCT slot. 
+# I ran the analysis using raw counts from the RNA and SCT slots and compared the results. Although there are less genes obtained with the SCT slot, the results are comparable with those of the RNA slot.
 counts <- fl_samples_DEG_noCd45@assays$SCT@counts
 
 metadata <- fl_samples_DEG_noCd45@meta.data
@@ -189,6 +191,7 @@ head(tstrsplit(colnames(aggr_counts), "_")[[1]], n = 10)
 
 ```
 
+
 ```{r}
 # Loop over all cell types to extract corresponding counts and store the info in a list
 
@@ -242,6 +245,7 @@ head(metadata)
 # Number of cells per sample and cluster
 (ncells <- table(colData(fl_samples_DEG_noCd45_sce)$sample_id, colData(fl_samples_DEG_noCd45_sce)$cluster_ident))
 ```
+
 
 ```{r}
 # Creating metadata list
@@ -362,6 +366,9 @@ DESeq2::plotPCA(rld2, ntop = 500, intgroup = "cell_count")
 dds_lrt2 <- DESeq(dds2, test = "LRT", reduced = ~1)
 
 ```
+
+
+
 ```{r}
 saveRDS(dds_lrt2, "~/myproject/sc_analysis_project/msc_project/DE_analysis/results/dds_lrt2.rds")
 ```
@@ -1517,18 +1524,18 @@ fl_samples_DEG_noCd45_sex <- readRDS("~/myproject/sc_analysis_project/msc_projec
 ```
 
 
-
-
+# Filter metadata to remove cells with unknown sex
 ```{r}
-# Copy object
-fl_samples_DEG_noCd45_sex_proliferation <- fl_samples_DEG_noCd45_sex
+fl_samples_DEG_noCd45_sex_proliferation_sex_known <- subset(fl_samples_DEG_noCd45_sex, subset = sex != "unknown")
+rm(fl_samples_DEG_noCd45_sex)
 ```
+
 
 
 ```{r}
 # SCTransform the merged Ery object
-DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation) <- "RNA"
-fl_samples_DEG_noCd45_sex_proliferation <- SCTransform(fl_samples_DEG_noCd45_sex_proliferation,
+DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation_sex_known) <- "RNA"
+fl_samples_DEG_noCd45_sex_proliferation_sex_known <- SCTransform(fl_samples_DEG_noCd45_sex_proliferation_sex_known,
                                    vst.flavor = "v2",
                                    vars.to.regress = c("mitoRatio", "S.Score", "G2M.Score"),
                                    variable.features.n = 3000,
@@ -1537,12 +1544,12 @@ fl_samples_DEG_noCd45_sex_proliferation <- SCTransform(fl_samples_DEG_noCd45_sex
 
 
 ```{r}
-fl_samples_DEG_noCd45_sex_proliferation <- PrepSCTFindMarkers(fl_samples_DEG_noCd45_sex_proliferation)
+fl_samples_DEG_noCd45_sex_proliferation_sex_known <- PrepSCTFindMarkers(fl_samples_DEG_noCd45_sex_proliferation_sex_known)
 ```
 
 
 ```{r}
-VariableFeatures(fl_samples_DEG_noCd45_sex_proliferation[["integrated"]]) <- rownames(fl_samples_DEG_noCd45_sex_proliferation[["SCT"]]@scale.data)
+VariableFeatures(fl_samples_DEG_noCd45_sex_proliferation_sex_known[["integrated"]]) <- rownames(fl_samples_DEG_noCd45_sex_proliferation_sex_known[["SCT"]]@scale.data)
 ```
 
 
@@ -1550,16 +1557,16 @@ VariableFeatures(fl_samples_DEG_noCd45_sex_proliferation[["integrated"]]) <- row
 
 ```{r, eval=FALSE}
 set.seed(12639)
-DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation) <- "integrated"
+DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation_sex_known) <- "integrated"
 # Run PCA
-fl_samples_DEG_noCd45_sex_proliferation <- RunPCA(object = fl_samples_DEG_noCd45_sex_proliferation, verbose = FALSE)
+fl_samples_DEG_noCd45_sex_proliferation_sex_known <- RunPCA(object = fl_samples_DEG_noCd45_sex_proliferation_sex_known, verbose = FALSE)
 ```
 
 
 
 ```{r}
 # Run UMAP
-fl_samples_DEG_noCd45_sex_proliferation <- RunUMAP(fl_samples_DEG_noCd45_sex_proliferation, 
+fl_samples_DEG_noCd45_sex_proliferation_sex_known <- RunUMAP(fl_samples_DEG_noCd45_sex_proliferation_sex_known, 
                   dims = 1:50,
                   reduction = "pca", verbose = FALSE)
 ```
@@ -1570,7 +1577,7 @@ fl_samples_DEG_noCd45_sex_proliferation <- RunUMAP(fl_samples_DEG_noCd45_sex_pro
 ```{r}
 # Plot UMAP
 set.seed(123)
-DimPlot(object = fl_samples_DEG_noCd45_sex_proliferation,
+DimPlot(object = fl_samples_DEG_noCd45_sex_proliferation_sex_known,
         reduction = "umap",
         label = TRUE,
         group.by = "sample_group",
@@ -1593,34 +1600,34 @@ All_timepoints_rnavelo <- "~/myproject/sc_analysis_project/msc_project/rnaveloci
 
 ## Ery
 ```{r}
-DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation) <- "SCT"
+DefaultAssay(fl_samples_DEG_noCd45_sex_proliferation_sex_known) <- "SCT"
 # Make a copy of the original object to avoid stories that touch
-fl_samples_DEG_noCd45_sex_proliferation1 <- fl_samples_DEG_noCd45_sex_proliferation
+fl_samples_DEG_noCd45_sex_proliferation_sex_known1 <- fl_samples_DEG_noCd45_sex_proliferation_sex_known
 
 # save metadata table
-fl_samples_DEG_noCd45_sex_proliferation1$barcode <- colnames(fl_samples_DEG_noCd45_sex_proliferation1)
-fl_samples_DEG_noCd45_sex_proliferation1$UMAP_1 <- fl_samples_DEG_noCd45_sex_proliferation1@reductions$umap@cell.embeddings[,1]
-fl_samples_DEG_noCd45_sex_proliferation1$UMAP_2 <- fl_samples_DEG_noCd45_sex_proliferation1@reductions$umap@cell.embeddings[,2]
+fl_samples_DEG_noCd45_sex_proliferation_sex_known1$barcode <- colnames(fl_samples_DEG_noCd45_sex_proliferation_sex_known1)
+fl_samples_DEG_noCd45_sex_proliferation_sex_known1$UMAP_1 <- fl_samples_DEG_noCd45_sex_proliferation_sex_known1@reductions$umap@cell.embeddings[,1]
+fl_samples_DEG_noCd45_sex_proliferation_sex_known1$UMAP_2 <- fl_samples_DEG_noCd45_sex_proliferation_sex_known1@reductions$umap@cell.embeddings[,2]
 ```  
 
 
 ```{r}
 # Select column variables of interest
-All_timepoints_metadata <- fl_samples_DEG_noCd45_sex_proliferation1@meta.data
+All_timepoints_metadata <- fl_samples_DEG_noCd45_sex_proliferation_sex_known1@meta.data
 All_timepoints_metadata <- All_timepoints_metadata %>% dplyr::select(c(seq_folder, cells, sample, sample_group, sample_origin, S.Score, G2M.Score, Phase, cluster_ident, barcode, UMAP_1, UMAP_2, sex)) %>% dplyr::rename("CellID" = cells)
 
-fl_samples_DEG_noCd45_sex_proliferation1@meta.data <- All_timepoints_metadata
+fl_samples_DEG_noCd45_sex_proliferation_sex_known1@meta.data <- All_timepoints_metadata
 ```
 
 
 ```{r}
-write.csv(fl_samples_DEG_noCd45_sex_proliferation1@meta.data, file = paste0(All_timepoints_rnavelo, "All_timepoints_metadata.csv"), quote = F, row.names = F)
+write.csv(fl_samples_DEG_noCd45_sex_proliferation_sex_known1@meta.data, file = paste0(All_timepoints_rnavelo, "All_timepoints_metadata.csv"), quote = F, row.names = F)
 ```
 
 
 ```{r}
 # Write expression counts matrix
-All_timepoints_counts_matrix <- GetAssayData(fl_samples_DEG_noCd45_sex_proliferation1, assay = "SCT", layer = "counts") 
+All_timepoints_counts_matrix <- GetAssayData(fl_samples_DEG_noCd45_sex_proliferation_sex_known1, assay = "SCT", layer = "counts") 
  
 writeMM(All_timepoints_counts_matrix, "rnavelocity/All_timepoints_rnavelocity/All_timepoints_counts.mtx", quote = F, row.names = T)
 ```
@@ -1629,7 +1636,7 @@ writeMM(All_timepoints_counts_matrix, "rnavelocity/All_timepoints_rnavelocity/Al
 
 ```{r}
 # Write dimensionality reduction matrix
-write.csv(fl_samples_DEG_noCd45_sex_proliferation1@reductions$pca@cell.embeddings, file = paste0(All_timepoints_rnavelo, "All_timepoints_pca.csv"), quote = F, row.names = F)
+write.csv(fl_samples_DEG_noCd45_sex_proliferation_sex_known1@reductions$pca@cell.embeddings, file = paste0(All_timepoints_rnavelo, "All_timepoints_pca.csv"), quote = F, row.names = F)
 ```
 
 

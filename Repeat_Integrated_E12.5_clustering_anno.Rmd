@@ -70,12 +70,15 @@ dir.create("~/myproject/sc_analysis_project/msc_project/results/plots/FL_E12.5/1
 #fl_samples_E12.5_12May_notintegrated <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_notintegrated.rds")# Raw object. CHECK FOR BATCH EFFECT
 fl_samples_E12.5_12May <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/E12.5_integrated.rds") # Raw object.
 fl_samples_E12.5_12May <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_clustered_sexgenesnotremoved.rds")
-fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS( "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named.rds")
+#fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS( "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named.rds") # Data before merging EPs
+ 
+fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS( "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named_MERGED_EPs_Mks.rds")
 markers_fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS( "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/markers_fl_samples_E12.5_12May_named_subset_regressed_named.rds")
 fl_samples_E12.5_12May_regressed <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_regressed.rds")
 fl_samples_E12.5_12May_named_subset <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/repeated_fl_samples_E12.5_12May_named_subset.rds")
 fl_samples_E12.5_12May_named_subset_regressed_named_EPs <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs.rds")
 fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex.rds")
+fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex_known <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex_known.rds")
 fl_samples_E12.5_12May_named_subset_DEG <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_DEG.rds")
 ```
 
@@ -3869,7 +3872,7 @@ DimPlot(object = fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex,
 ```{r}
 female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex <- FindMarkers(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex, 
                                   ident.1 = "female",
-                                  ident.2 = "male",
+                                  ident.2 = "mostly_male",
                                   assay = "SCT",
                                   logfc.threshold = 0,
                                   min.cells.feature = 3,
@@ -3944,7 +3947,7 @@ EnhancedVolcano(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_
                 pCutoff = 10e-5,
                 pointSize = 6,
                 labSize = 10,
-                #drawConnectors = TRUE,
+                drawConnectors = TRUE,
                 #max.overlaps = Inf,
                 labFace = "bold",
                 axisLabSize = 30,
@@ -3960,17 +3963,79 @@ EnhancedVolcano(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_
                 legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
                 ~ log[2] ~ FC)))
 
-ggsave("volcano_female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.pdf",
-       path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E12.5/",
-       width = 15, height = 15)
+#ggsave("volcano_female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.pdf",
+       #path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E12.5/",
+       #width = 15, height = 15)
+```
+
+```{r}
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_heme <- FindMarkers(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex,
+                                  ident.1 = "female",
+                                  ident.2 = "mostly_male",
+                                  assay = "SCT",
+                                  features = c("Alad", "Fech", "Alas2", "Ppox", "Urod", "Hmbs", "Cpox", "Uros", "Tmem14a"),
+                                  logfc.threshold = 0,
+                                  min.cells.feature = 3,
+                                  min.cells.group = 3,
+                                  min.pct = 0.1)
+
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_heme
+```
+
+
+```{r}
+EnhancedVolcano(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_heme, 
+                x = "avg_log2FC", 
+                y = "p_val_adj", 
+                xlim = c(min(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_heme[["avg_log2FC"]], na.rm = TRUE) - 0.5, max(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_heme[["avg_log2FC"]], na.rm = TRUE) + 0.5),
+                lab = rownames(female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_heme),
+                pCutoff = 10e-1,
+                pointSize = 6,
+                labSize = 10,
+                drawConnectors = TRUE,
+                #max.overlaps = Inf,
+                labFace = "bold",
+                axisLabSize = 30,
+                subtitleLabSize = 30,
+                legendLabSize = 30,
+                legendIconSize = 15,
+                captionLabSize = 30,
+                FCcutoff = 0,
+                col = c("grey30", "forestgreen", "dodgerblue4", "red4"),
+                title = "", 
+                ylab = "-log10(p-val adj)", 
+                subtitle = "E12.5 Differential Gene Expression: Female vs Male EPs", 
+                legendLabels = c("Not sig.", expression(Log[2] ~ FC), "p-value", expression(p - value ~ +
+                ~ log[2] ~ FC)))
+
+#ggsave("volcano_female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.pdf",
+       #path = "~/myproject/sc_analysis_project/msc_project/DE_analysis/figures/FL_E12.5/",
+       #width = 15, height = 15)
 ```
 
 
 
 
 ```{r}
+# Heme biosynthesis genes
+a <- VlnPlot(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex_known, features = c("Alad", "Fech", "Alas2", "Ppox"), group.by = "sex", add.noise = FALSE, pt.size = 0,  stack = TRUE, flip = TRUE) + NoLegend() +
+  theme(axis.text.y = element_text(face = "bold", size = 30)) +
+            theme(axis.text.x = element_text(face = "bold", size = 30)) +
+  theme(axis.title.y = element_text(size = 30, face = "bold")) 
+
+a
+```
+
+
+
+
+
+```{r}
 # Read in significant Erythroid progenitor genes
-female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif <- read_csv(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.csv"))
+#female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif <- read_csv(here("DE_analysis/results/FL_E12.5", #"female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.csv"))
+
+female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif <- readRDS(
+          paste0(here("DE_analysis/results/FL_E12.5", "female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_signif.rds")))
 ```
 
 
@@ -4177,7 +4242,7 @@ ggsave("REACOME_female_vs_male_E12.5_12May_named_subset_regressed_named_EPs_sex_
 #Heme biosynthetic process genes from MSigdb - 
 Heme_biosynthetic_process <- c("Abcb7","Alas1","Alas2","Atpif1","Cpox","Fech","Fxn","Slc6a9","Hmbs","Alad","Slc11a2","Ppox","Hnf1a","Iba57","Urod","Uros","Cox15","Pgrmc1","Snx3","Abcb10","Ireb2","Tmem14c","Slc25a39","Srrd","Cox10","Tmem14a")
 
-Heme_biosynthetic_process <- as.data.frame(c(Abcb7,Alas1,Alas2,Atpif1,Cpox,Fech,Fxn,Slc6a9,Hmbs,Alad,Slc11a2,Ppox,Hnf1a,Iba57,Urod,Uros,Cox15,Pgrmc1,Snx3,Abcb10,Ireb2,Tmem14c,Slc25a39,Srrd,Cox10,Tmem14a))
+#Heme_biosynthetic_process <- as.data.frame(c(Abcb7,Alas1,Alas2,Atpif1,Cpox,Fech,Fxn,Slc6a9,Hmbs,Alad,Slc11a2,Ppox,Hnf1a,Iba57,Urod#,Uros,Cox15,Pgrmc1,Snx3,Abcb10,Ireb2,Tmem14c,Slc25a39,Srrd,Cox10,Tmem14a))
 
 
 Heme_metabolic_process <-  as.data.frame(c("Blvra","Abcb7","Alas1","Alas2","Atpif1","Cpox","Cyp2a5","Fech","Fxn","Slc6a9","Hebp1","Hmbs","Hmox1","Hmox2","Hpx","Alad","Slc11a2","Ppox","Hnf1a","Iba57","Urod","Uros","Cox15","Blvrb","Cyb5r4","Slco1a6","Pgrmc1","Snx3","Abcb10","Ireb2","Tmem14c","Slc25a39","Srrd","Cox10","Abcb6","Tmem14a"))
@@ -4318,7 +4383,8 @@ saveRDS(fl_samples_E12.5_12May_named_subset, "~/myproject/sc_analysis_project/ms
 saveRDS(fl_samples_E12.5_12May_named_subset_nosexdoublets, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_nosexdoublets_notregressed.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named.rds")
-saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named_MERGED_EPs_Mks.rds")
+saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named_MERGED_EPs_Mks.rds") # Feb 26, 2024
+saveRDS(markers_fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/markers_fl_samples_E12.5_12May_named_subset_regressed_named_MERGED_EPs_Mks.rds") # Feb 26, 2024
 saveRDS(markers_fl_samples_E12.5_12May_named_subset_regressed_named, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/markers_fl_samples_E12.5_12May_named_subset_regressed_named.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named_EPs, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs.rds")
 saveRDS(fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex, "~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named_EPs_sex.rds")

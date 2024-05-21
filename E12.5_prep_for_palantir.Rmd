@@ -27,7 +27,7 @@ library(R.utils)
 
 ```{r, eval=FALSE}
 # Read in Fetal liver E12.5 data
-fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressed_named.rds")
+fl_samples_E12.5_12May_named_subset_regressed_named <- readRDS("~/myproject/sc_analysis_project/msc_project/rds_data/FL_E12.5/fl_samples_E12.5_12May_named_subset_regressedsexandsexgenes_named_MERGED_EPs_Mks.rds")
 ```
 
 
